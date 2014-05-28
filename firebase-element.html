@@ -1,0 +1,164 @@
+<link rel="import" href="firebase-import.html">
+<link rel="import" href="../polymer/polymer.html">
+
+<polymer-element name="firebase-data">
+<script>
+  /*
+    note: switching between Array and Object datatypes will mess up 
+    live firebase-data elements
+  */
+  Polymer('firebase-data', {
+    publish: {
+      location: null,
+      ref: null,
+      limit: 0,
+      start: null,
+      end: null,
+      data: null,
+      keys: null,
+      log: false
+    },
+    observe: {
+      'ref limit start end': 'requery'
+    },
+    locationChanged: function() {
+      if (this.query) {
+        this.query.off();
+      }
+      this.closeObserver();
+      if (this.location) {
+        this.ref = new Firebase(this.location);
+      }
+    },
+    requery: function() {
+      var query = this.ref;
+      if (this.start) {
+        query = query.startAt(this.start);
+      }
+      if (this.end) {
+        query = query.endAt(this.start);
+      }
+      if (this.limit > 0) {
+        query = query.limit(this.limit);
+      }
+      this.query = query;
+    },
+    queryChanged: function() {
+      // data acquisition
+      this.closeObserver();
+      this.data = null;
+      this.query.once('value', this.valueLoaded, this);
+      // server side dynamics
+      this.query.on('child_added', this.childAdded, this);
+      this.query.on('child_changed', this.childChanged, this);
+      this.query.on('child_removed', this.childRemoved, this);
+    },
+    valueLoaded: function(snapshot) {
+      if (this.ref.name() !== snapshot.name()) {
+        this.log && console.warn('squelching stale response [%s]', snapshot.name());
+        return;
+      }
+      this.log && console.log('acquired value ' + this.location);
+      this.data = snapshot.val() || {};
+      this.dataChange();
+      // client-side dynamics
+      if (this.data instanceof Array) {
+        this.observer = new ArrayObserver(this.data);
+        this.observer.open(this.observeArray.bind(this));
+      } else {
+        this.observer = new ObjectObserver(this.data);
+        this.observer.open(this.observeObject.bind(this));
+      }
+    },
+    closeObserver: function() {
+      if (this.observer) {
+        this.observer.close();
+        this.observer = null;
+      }
+    },
+    // server-side effects
+    childAdded: function(snapshot) {
+      // ignore initial adds, we'll take the 'value' instead
+      if (this.data) {
+        this.updateData(snapshot);
+      }
+      this.log && console.log('child-added ' + snapshot.name());
+      this.fire('child-added', {name: snapshot.name(), value: snapshot.val()});
+    },
+    childChanged: function(snapshot) {
+      this.updateData(snapshot);
+      this.log && console.log('child-changed ' + snapshot.name());
+    },
+    childRemoved: function(snapshot) {
+      this.removeData(snapshot.name());
+      this.log && console.log('child-removed ' + snapshot.name());
+    },
+    updateData: function(snapshot) {
+      this.data[snapshot.name()] = snapshot.val();
+      //this.discardObservations();
+      this.dataChange();
+    },
+    removeData: function(key) {
+      if (this.data instanceof Array) {
+        this.data.splice(key, 1);
+      } else {
+        delete this.data[key];
+      }
+      //this.discardObservations();
+      this.dataChange();
+    },
+    dataChange: function() {
+      this.job('change', function() {
+        this.keys = this.data ? Object.keys(this.data) : [];
+        this.fire('data-change');
+      });
+    },
+    // client-side effects
+    discardObservations: function() {
+      if (this.observer) {
+        this.observer.discardChanges();
+      }
+    },
+    observeArray: function(splices) {
+      //console.warn('observeArray');
+      // TODO(sjmiles): arrays are nasty because simple insertions/deletions
+      // cause changes to ripple through keys
+      this.commit();
+    },
+    observeObject: function(added, removed, changed, getOldValueFn) {
+      //console.warn('observeObject');
+      // client-side dynamics
+      var ctrlr = this;
+      Object.keys(added).forEach(function(property) {
+        ctrlr.commitProperty(property);
+      });
+      Object.keys(removed).forEach(function(property) {
+        ctrlr.remove(property);
+      });
+      Object.keys(changed).forEach(function(property) {
+        ctrlr.commitProperty(property);
+      });
+    },
+    // api for manual commits
+    commitProperty: function(key) {
+      this.log && console.log('commitProperty ' + key);
+      this.ref.child(key).set(this.data[key]);
+    },
+    commit: function() {
+      this.log && console.log('commit');
+      this.ref.set(this.data);
+    },
+    push: function(item) {
+      if (this.data instanceof Array) {
+        this.ref.commitProperty(this.data.push(item)-1);
+      } else {
+        this.ref.push(item);
+      }
+      this.dataChange();
+    },
+    remove: function(key) {
+      this.ref.child(key).remove();
+    }
+  });
+</script>
+</polymer-element>
