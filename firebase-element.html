@@ -1,21 +1,180 @@
 <link rel="import" href="firebase-import.html">
 <link rel="import" href="../polymer/polymer.html">
 
-<polymer-element name="firebase-data">
+<!--
+Element wrapper for the Firebase Web API (http://firebase.com).
+
+`firebase-element` maps a firebase location to a `data` property. 
+
+    <firebase-element id="base" location="https://YOUR.firebaseio.com/" data="{{data}}" keys="{{keys}}"></firebase-element>
+
+    <h3>My Firebase Data</h3>
+    
+    <template repeat="{{key in keys}}">
+      <p>{{key}}: {{data[key]}}</p>
+    </template>
+    
+## Data Persistence
+
+- changes that occur on the remote data are automatically reflected back into 
+  the client-side data.
+- assignments to the `data` property, or modifications to `data`'s **own** properties, are 
+  automatically persisted back to the Firebase store.
+- changes to **sub-properties** of `data` are not generally observable and are **not** 
+  automatically persisted.
+- properties bound to the `data` property work just like `data` itself (all Polymer
+  bindings are like this).
+  
+Examples:
+
+    // assume `this.data` is bound to the firebase-element data as shown above
+    
+    resetData: function() {
+      // setting the data object directly will automatically also 
+      // set the firebase location 
+      this.data = {
+        name: 'anonymous',
+        info: 'none',
+        more: {
+          color: "yellow"
+        }
+      };
+    },
+
+    updateInfo: function(info) {
+      // setting top-level properties of the data object 
+      // will automatically update the database
+      // this works via binding also
+      this.data.info = info;
+    },
+
+    updateColor: function(color) {
+      // changes to deep properties of the data object 
+      // are not observed automatically, and must be
+      // commited to update the database
+      this.data.more.color = color;
+      // in this case, we use `commitProperty` to commit 
+      // the top-level property that has deep changes
+      this.$.base.commitProperty('more');
+    }
+
+## Observing Changes
+
+Whenever `firebase-element` detects a change in data, from either client or server side, it
+bubbles a `data-change` event. `data-change` events are frequency-limited (throttled).
+
+Changes in data objects are also observable directly, but you must observe relevant properties
+directly. Changes in sub-properties are not automatically observed, following normal Polymer rules.
+
+Examples:
+
+    observe: {
+      // dataChanged only called if data is pointed at a new object
+      // changes to data's _properties or sub-properites are not observed_
+      data: 'dataChanged',
+      // dataNameChanged called if `data.name` changes
+      'data.name': 'dataNameChanged'
+    } 
+
+## Arrays and Objects
+
+Firebase stores all data as Objects, even Arrays are stored as objects with numerical keys. 
+As a convenience, the Firebase Web API automatically converts Array-like Objects into Arrays
+for use JavaScript.
+
+Arrays are generally inconvenient for large data-storage. For example, if you delete an
+element from an array, all the subsequent elements need their indices (keys) updated.
+
+To support lists of data without using Arrays, Firebase supports a `push` method which 
+adds an entry to an Object using a string key instead of an index.
+
+    addEntry: function(value) {
+      this.$.base.push({foo: value});
+    }
+
+## Child Events
+
+Firebase supports notifications when properties on `data` are removed, added, or modified. 
+Any of these changes will cause firebase-element to fire `data-change` method as described 
+above. However, you can also listen for discrete child events, by setting `childEvents`
+property to true. The events are `child-added`, `child-removed`, and `child-changed`. Each
+`event` object has a `detail` property with `name` and `value` properties identifying the 
+modified item.
+
+Example:
+
+    <firebase-element childEvents on-child-added="{{childAdded}}" ...>
+    ...
+    childAdded: function(event) {
+      console.log('added ', event.detail.name, ':', event.detail.value);
+    }
+
+@class firebase-element
+@blurb Element wrapper for the Firebase Web API (http://firebase.com).
+@status alpha
+@snap snap.png
+-->
+<polymer-element name="firebase-element">
 <script>
   /*
     note: switching between Array and Object datatypes will mess up 
-    live firebase-data elements
+    live firebase-element elements
   */
-  Polymer('firebase-data', {
+  Polymer('firebase-element', {
     publish: {
+      /**
+       * Firebase location mapped to `data`.
+       * @attribute location
+       * @type String
+       */
       location: null,
+      /**
+       * Firebase `ref` object corresponding to `location`.
+       * @attribute ref
+       * @type Object
+       */
       ref: null,
+      /**
+       * Restricts the number of records reflected on the client.
+       * @attribute limit
+       * @type Number
+       */
       limit: 0,
+      /**
+       * Specify a starting record for the set of records reflected on the client.
+       * @attribute start
+       * @type Any
+       */
       start: null,
+      /**
+       * Specify an ending record for the set of records reflected on the client.
+       * @attribute end
+       * @type Any
+       */
       end: null,
+      /**
+       * The `data` object mapped to `location`.
+       * @attribute data
+       * @type Object
+       */
       data: null,
+      /**
+       * All keys in data (array of names, if you think of data as a set of name/value pairs).
+       * @attribute keys
+       * @type Array
+       */
       keys: null,
+      /**
+       * If true, will fire `child-added`, `child-removed`, `child-changed` events.
+       * @attribute childEvents
+       * @type Boolean
+       */
+      childEvents: false,
+      /**
+       * If true, will log various occurances to the console api.
+       * @attribute log
+       * @type Boolean
+       */
       log: false
     },
     observe: {
@@ -44,9 +203,9 @@
       this.query = query;
     },
     queryChanged: function() {
+      // initialize
+      this._setData(null);
       // data acquisition
-      this.closeObserver();
-      this.data = null;
       this.query.once('value', this.valueLoaded, this);
       // server side dynamics
       this.query.on('child_added', this.childAdded, this);
@@ -59,15 +218,28 @@
         return;
       }
       this.log && console.log('acquired value ' + this.location);
-      this.data = snapshot.val() || {};
+      this._setData(snapshot.val() || {});
       this.dataChange();
+    },
+    observeData: function() {
       // client-side dynamics
       if (this.data instanceof Array) {
         this.observer = new ArrayObserver(this.data);
         this.observer.open(this.observeArray.bind(this));
-      } else {
+      } else if (this.data instanceof Object) {
         this.observer = new ObjectObserver(this.data);
         this.observer.open(this.observeObject.bind(this));
+      }
+    },
+    _setData: function(data) {
+      this.closeObserver();
+      this.data = this._data = data;
+      this.observeData();
+    },
+    dataChanged: function() {
+      if (this._data !== this.data) {
+        this._setData(this.data);
+        this.commit();
       }
     },
     closeObserver: function() {
@@ -83,15 +255,23 @@
         this.updateData(snapshot);
       }
       this.log && console.log('child-added ' + snapshot.name());
-      this.fire('child-added', {name: snapshot.name(), value: snapshot.val()});
+      if (this.childEvents) {
+        this.fire('child-added', {name: snapshot.name(), value: snapshot.val()});
+      }
     },
     childChanged: function(snapshot) {
       this.updateData(snapshot);
       this.log && console.log('child-changed ' + snapshot.name());
+      if (this.childEvents) {
+        this.fire('child-changed', {name: snapshot.name(), value: snapshot.val()});
+      }
     },
     childRemoved: function(snapshot) {
       this.removeData(snapshot.name());
       this.log && console.log('child-removed ' + snapshot.name());
+      if (this.childEvents) {
+        this.fire('child-removed', {name: snapshot.name(), value: snapshot.val()});
+      }
     },
     updateData: function(snapshot) {
       this.data[snapshot.name()] = snapshot.val();
