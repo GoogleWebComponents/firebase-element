@@ -361,12 +361,14 @@ Example:
       this.ref.set(this.data);
     },
     push: function(item) {
+      var neo;
       if (this.data instanceof Array) {
         this.ref.commitProperty(this.data.push(item)-1);
       } else {
-        this.ref.push(item);
+        neo = this.ref.push(item);
       }
       this.dataChange();
+      return neo;
     }
   });
 </script>
