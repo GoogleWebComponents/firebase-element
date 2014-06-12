@@ -1,0 +1,124 @@
+<link rel="import" href="firebase-import.html">
+<link rel="import" href="firebase-simple-login-import.html">
+<link rel="import" href="../polymer/polymer.html">
+
+<polymer-element name="firebase-login" attributes="location provider user autoLogin statusKnown params">
+<!--
+Element wrapper for the Firebase Simple Login API (https://www.firebase.com/docs/security/simple-login-overview.html).
+
+@class firebase-login
+@blurb Element wrapper for the Firebase Simple Login API (https://www.firebase.com/docs/security/simple-login-overview.html).
+@status alpha
+@snap snap.png
+-->
+
+<script>
+  
+  Polymer('firebase-login', {
+
+    /**
+     * Fired when user is logged in
+     * 
+     * @event login
+     */
+
+    /**
+     * Fired when user is logged out
+     * 
+     * @event logout
+     */
+
+    /**
+     * Fired when an error occurred logging in
+     * 
+     * @event error
+     */
+
+    /**
+     * Firebase location URL (must have simple login enabled via Forge interface).
+     * @attribute location
+     * @type String
+     */
+    location: null,
+
+    /**
+     * Default simple login provider type.  May be overridden at `login()`-time.
+     * @attribute provider
+     * @type String
+     */
+    provider: 'anonymous',
+
+    /**
+     * When logged in, this property reflects the firebase user object.
+     * @attribute user
+     * @type Object
+     */
+    user: null,
+
+    /**
+     * When true, login will be attempted if login status check determines no user is
+     * logged in.  Should generally only be used with provider types that do not present
+     * a login UI, such as 'anonymous'.
+     * @attribute autoLogin
+     * @type Boolean
+     */
+    autoLogin: false,
+
+    /**
+     * When true, login status can be determined by checking `user` property.
+     * @attribute statusKnown
+     * @type Boolean
+     */
+    statusKnown: false,
+
+    /**
+     * Provider-specific parameters to pass to login.  May be overridden at `login()`-time.
+     * @attribute params
+     * @type Object
+     */
+    params: null,
+
+    ready: function() {
+      if (!this.location) {
+        // FIXME(kschaaf): doesn't seem to be a way to un-register auth callbacks, so
+        // for now require a static location (switching locations should be rare)
+        console.error("firebase-login requires a static location");
+      }
+      this.ref = new Firebase(this.location);
+      this.auth = new FirebaseSimpleLogin(this.ref, function(error, user) {
+        if (error) {
+          // an error occurred while attempting login
+          this.fire('error', {message: error});
+        } else if (user) {
+          // user authenticated with Firebase
+          this.statusKnown = true;
+          this.user = user;
+          this.fire('login', {user: user});
+        } else {
+          this.user = null;
+          if (this.statusKnown) {
+            this.fire('logout');
+          } else {
+            if (this.autoLogin) {
+              this.login();                
+            }
+          }
+          this.statusKnown = true;
+        }
+      }.bind(this));        
+    },
+    login: function(provider, params) {
+      var pr = provider instanceof String ? provider : this.provider;
+      var pa = (provider instanceof String ? params : provider) || this.params;
+      if (typeof pa == 'string') {
+        pa = JSON.parse(pa);
+      }
+      this.auth.login(pr, pa);
+    },
+    logout: function() {
+      this.auth.logout();
+    }   
+  });
+
+</script>
+</polymer-element>

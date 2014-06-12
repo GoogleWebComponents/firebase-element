@@ -123,6 +123,12 @@ Example:
   Polymer('firebase-element', {
     publish: {
       /**
+       * Fired when properties on `data` are added, removed, or modified.
+       *
+       * @event data-change
+       */
+
+      /**
        * Firebase location mapped to `data`.
        * @attribute location
        * @type String
@@ -171,6 +177,12 @@ Example:
        */
       childEvents: false,
       /**
+       * When set, data will be stored with the given Firebase priority level.
+       * @attribute priority
+       * @type Number
+       */
+      priority: null,
+      /**
        * If true, will log various occurances to the console api.
        * @attribute log
        * @type Boolean
@@ -187,6 +199,8 @@ Example:
       // connect to db
       if (this.location) {
         this.ref = new Firebase(this.location);
+      } else {
+        this.ref = null;
       }
     },
     requery: function() {
@@ -195,16 +209,18 @@ Example:
       this.closeObserver();
       // construct new query
       var query = this.ref;
-      if (this.start) {
-        query = query.startAt(this.start);
+      if (query) {
+        if (this.start) {
+          query = query.startAt(this.start);
+        }
+        if (this.end) {
+          query = query.endAt(this.start);
+        }
+        if (this.limit > 0) {
+          query = query.limit(this.limit);
+        }
+        this.query = query;
       }
-      if (this.end) {
-        query = query.endAt(this.start);
-      }
-      if (this.limit > 0) {
-        query = query.limit(this.limit);
-      }
-      this.query = query;
     },
     queryChanged: function() {
       // initialize
@@ -220,8 +236,12 @@ Example:
         return;
       }
       this.log && console.log('acquired value ' + this.location);
-      this._setData(snapshot.val() || {});
-      this.dataChange();
+      this._setData(snapshot.val());
+      if (this.data) {
+        this.dataChange();
+      } else {
+        this.dataExists = false;
+      }
     },
     _setData: function(data) {
       this.closeObserver();
@@ -261,9 +281,11 @@ Example:
       }
     },
     dataChanged: function() {
-      if (this._data !== this.data) {
-        this._setData(this.data);
-        this.commit();
+      if (!this._data && !this.dataExists) {
+        if (this._data !== this.data) {
+          this._setData(this.data);
+          this.commit();
+        }
       }
     },
     discardObservations: function() {
@@ -281,9 +303,7 @@ Example:
     //
     childAdded: function(snapshot) {
       // ignore initial adds, we'll take the 'value' instead
-      if (this.data) {
-        this.modulateData('updateData', snapshot);
-      }
+      this.modulateData('updateData', snapshot);
       this.childEvent('child-added', snapshot);
     },
     childChanged: function(snapshot) {
@@ -310,19 +330,25 @@ Example:
       this.discardObservations();      
     },
     updateData: function(snapshot) {
+      if (!this.data) {
+        this.dataExists = true;
+        this.data = {};
+      }
       this.data[snapshot.name()] = snapshot.val();
     },
     removeData: function(snapshot) {
       var key = snapshot.name();
       if (this.data instanceof Array) {
         this.data.splice(key, 1);
-      } else {
+      } else if (this.data) {
         delete this.data[key];
       }
     },
     dataChange: function() {
       //this.job('change', function() {
-        this.keys = this.data ? Object.keys(this.data) : [];
+        if (this.data) {
+          this.keys = this.data ? Object.keys(this.data) : [];
+        }
         this.fire('data-change');
       //});
     },
@@ -351,14 +377,27 @@ Example:
     // api for manual commits
     commitProperty: function(key) {
       this.log && console.log('commitProperty ' + key);
-      this.ref.child(key).set(this.data[key]);
+      if (this.ref) {
+        this.ref.child(key).set(this.data[key]);
+      }
     },
     remove: function(key) {
       this.ref.child(key).remove();
     },
     commit: function() {
       this.log && console.log('commit');
-      this.ref.set(this.data);
+      if (this.ref) {
+        if (this.data) {
+          if (this.priority != null) {
+            this.ref.setWithPriority(this.data, this.priority);
+          } else {
+            this.ref.set(this.data);
+          }
+        } else {
+          this.ref.remove();
+          this.dataExists = false;
+        }
+      }
     },
     push: function(item) {
       var neo;
