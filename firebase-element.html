@@ -288,6 +288,11 @@ Example:
         }
       }
     },
+    priorityChanged: function() {
+      if (this.ref) {
+        this.ref.setPriority(this.priority);
+      }
+    },
     discardObservations: function() {
       if (this.observer) {
         this.observer.discardChanges();
