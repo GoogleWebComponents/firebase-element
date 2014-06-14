@@ -289,7 +289,7 @@ Example:
       }
     },
     priorityChanged: function() {
-      if (this.ref) {
+      if (this.ref && (this.priority != null)) {
         this.ref.setPriority(this.priority);
       }
     },
