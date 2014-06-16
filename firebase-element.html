@@ -239,13 +239,11 @@ Example:
       this._setData(snapshot.val());
       if (this.data) {
         this.dataChange();
-      } else {
-        this.dataExists = false;
       }
     },
     _setData: function(data) {
       this.closeObserver();
-      this.data = this._data = data;
+      this.data = this._data = data || {};
       this.observeData();
     },
     //
@@ -281,11 +279,9 @@ Example:
       }
     },
     dataChanged: function() {
-      if (!this._data && !this.dataExists) {
-        if (this._data !== this.data) {
-          this._setData(this.data);
-          this.commit();
-        }
+      if (this._data !== this.data) {
+        this._setData(this.data);
+        this.commit();
       }
     },
     priorityChanged: function() {
@@ -320,7 +316,7 @@ Example:
       this.childEvent('child-removed', snapshot);
     },
     childEvent: function(kind, snapshot) {
-      this.log && console.log(kind + snapshot.name());
+      this.log && console.log(kind, snapshot.name());
       if (this.childEvents) {
         this.fire(kind, {name: snapshot.name(), value: snapshot.val()});
       }
@@ -336,7 +332,6 @@ Example:
     },
     updateData: function(snapshot) {
       if (!this.data) {
-        this.dataExists = true;
         this.data = {};
       }
       this.data[snapshot.name()] = snapshot.val();
@@ -398,9 +393,6 @@ Example:
           } else {
             this.ref.set(this.data);
           }
-        } else {
-          this.ref.remove();
-          this.dataExists = false;
         }
       }
     },

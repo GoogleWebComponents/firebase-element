@@ -13,7 +13,7 @@
 
   <template is="auto-binding">
 
-    <firebase-element id="base" on-data-change="{{dataChange}}" data="{{data}}" location="https://treedata-demo.firebaseio.com/demo"></firebase-element>
+    <firebase-element id="base" on-data-change="{{dataChange}}" data="{{data}}" location="https://treedata-demo.firebaseio.com/demo" log></firebase-element>
 
     <h3>Top-level properties persist automatically:</h3>
 
@@ -36,7 +36,11 @@
 
     <hr>
 
-    <button on-tap="{{reset}}">Reset</button>
+    <button on-tap="{{resetLocal}}">Reset Local</button>
+    <button on-tap="{{removeLocal}}">Remove Local</button>
+    <button on-tap="{{resetRemote}}">Reset remote</button>
+    <button on-tap="{{removeRemote}}">Remove Remote</button>
+
 
   </template>
   
@@ -46,7 +50,7 @@
 
       scope = e.target;
 
-      scope.reset = function() {
+      scope.resetLocal = function() {
         // direct setting of data is persisted automatically
         this.data = {
           name: 'anonymous',
@@ -56,7 +60,27 @@
           }
         };
       };
+
+      scope.removeLocal = function() {
+        this.data = null;
+      };
       
+      scope.resetRemote = function() {
+        // Simulate other actor setting data to same remote location
+        new Firebase('https://treedata-demo.firebaseio.com/demo').set({
+          name: 'anonymous',
+          info: 'none',
+          more: {
+            color: "yellow"
+          }
+        });
+      };
+
+      scope.removeRemote = function() {
+        // Simulate other actor removing data from same remote location
+        new Firebase('https://treedata-demo.firebaseio.com/demo').remove();
+      };
+
       scope.commitMore = function() {
         this.$.base.commitProperty('more');
       };
