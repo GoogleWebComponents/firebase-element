@@ -304,7 +304,9 @@ Example:
     //
     childAdded: function(snapshot) {
       // ignore initial adds, we'll take the 'value' instead
-      this.modulateData('updateData', snapshot);
+      if (this.data) {
+        this.modulateData('updateData', snapshot);
+      }
       this.childEvent('child-added', snapshot);
     },
     childChanged: function(snapshot) {
