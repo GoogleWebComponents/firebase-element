@@ -183,6 +183,12 @@ Example:
        */
       priority: null,
       /**
+       * Reflects whether the data at this locaation as been read at least once
+       * @attribute initialized
+       * @type Boolean
+       */
+      dataReady: false,
+      /**
        * If true, will log various occurances to the console api.
        * @attribute log
        * @type Boolean
@@ -226,6 +232,7 @@ Example:
       // initialize
       this._setData(null);
       // data acquisition
+      this.dataReady = false;
       this.query.once('value', this.valueLoaded, this);
       // observe server-side data
       this.observeQuery();
@@ -236,6 +243,7 @@ Example:
         return;
       }
       this.log && console.log('acquired value ' + this.location);
+      this.dataReady = true;
       this._setData(snapshot.val());
       if (this.data) {
         this.dataChange();
