@@ -233,11 +233,13 @@ Example:
       this._setData(null);
       // data acquisition
       this.dataReady = false;
+      this.valueLoading = true;
       this.query.once('value', this.valueLoaded, this);
       // observe server-side data
       this.observeQuery();
     },
     valueLoaded: function(snapshot) {
+      this.valueLoading = false;
       if (this.ref.name() !== snapshot.name()) {
         this.log && console.warn('squelching stale response [%s]', snapshot.name());
         return;
@@ -314,8 +316,9 @@ Example:
       if (this.data) {
         // ignore initial adds, we'll take the 'value' instead
         this.modulateData('updateData', snapshot);
-      } else {
+      } else if (!this.valueLoading) {
         // if children are added to a previously null location, grab the whole value in one go
+        this.valueLoading = true;
         this.query.once('value', this.valueLoaded, this);
       }
       this.childEvent('child-added', snapshot);
