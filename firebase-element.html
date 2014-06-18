@@ -353,8 +353,14 @@ Example:
       var key = snapshot.name();
       if (this.data instanceof Array) {
         this.data.splice(key, 1);
+        if (data.length == 0) {
+          this._setData(null);
+        }
       } else if (this.data) {
         delete this.data[key];
+        if (Object.keys(this.data).length === 0) {
+          this._setData(null);
+        }
       }
     },
     dataChange: function() {
