@@ -243,7 +243,7 @@ Example:
     },
     _setData: function(data) {
       this.closeObserver();
-      this.data = this._data = data || {};
+      this.data = this._data = data;
       this.observeData();
     },
     //
@@ -303,9 +303,12 @@ Example:
     // server-side effects
     //
     childAdded: function(snapshot) {
-      // ignore initial adds, we'll take the 'value' instead
       if (this.data) {
+        // ignore initial adds, we'll take the 'value' instead
         this.modulateData('updateData', snapshot);
+      } else {
+        // if children are added to a previously null location, grab the whole value in one go
+        this.query.once('value', this.valueLoaded, this);
       }
       this.childEvent('child-added', snapshot);
     },
@@ -389,12 +392,10 @@ Example:
     commit: function() {
       this.log && console.log('commit');
       if (this.ref) {
-        if (this.data) {
-          if (this.priority != null) {
-            this.ref.setWithPriority(this.data, this.priority);
-          } else {
-            this.ref.set(this.data);
-          }
+        if (this.priority != null) {
+          this.ref.setWithPriority(this.data || {}, this.priority);
+        } else {
+          this.ref.set(this.data || {});
         }
       }
     },

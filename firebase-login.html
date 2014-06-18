@@ -91,8 +91,8 @@ Element wrapper for the Firebase Simple Login API (https://www.firebase.com/docs
           this.fire('error', {message: error});
         } else if (user) {
           // user authenticated with Firebase
-          this.statusKnown = true;
           this.user = user;
+          this.statusKnown = true;
           this.fire('login', {user: user});
         } else {
           this.user = null;
@@ -107,6 +107,7 @@ Element wrapper for the Firebase Simple Login API (https://www.firebase.com/docs
         }
       }.bind(this));        
     },
+
     login: function(provider, params) {
       var pr = provider instanceof String ? provider : this.provider;
       var pa = (provider instanceof String ? params : provider) || this.params;
@@ -115,9 +116,11 @@ Element wrapper for the Firebase Simple Login API (https://www.firebase.com/docs
       }
       this.auth.login(pr, pa);
     },
+
     logout: function() {
       this.auth.logout();
-    }   
+    }
+
   });
 
 </script>
