@@ -98,27 +98,51 @@ Element wrapper for the Firebase Simple Login API (https://www.firebase.com/docs
           this.user = null;
           if (this.statusKnown) {
             this.fire('logout');
-          } else {
-            if (this.autoLogin) {
-              this.login();                
-            }
+          }
+          if (this.queuedLogin) {
+            this.login(this.queuedLogin.provider, this.queuedLogin.params);
+            this.queuedLogin = null;
+          } else if (!this.statusKnown && this.autoLogin) {
+            this.login();                
           }
           this.statusKnown = true;
         }
-      }.bind(this));        
+      }.bind(this));
+      
+      window.addEventListener('online', function() {
+        this.onlineHandler();
+      }.bind(this));
     },
 
     login: function(provider, params) {
-      var pr = provider instanceof String ? provider : this.provider;
-      var pa = (provider instanceof String ? params : provider) || this.params;
-      if (typeof pa == 'string') {
-        pa = JSON.parse(pa);
+      if (navigator.onLine === false) {
+        this.queuedLogin = {provider: provider, params: params};
+      } else {
+        var pr = provider instanceof String ? provider : this.provider;
+        var pa = (provider instanceof String ? params : provider) || this.params;
+        if (typeof pa == 'string') {
+          pa = JSON.parse(pa);
+        }
+        this.auth.login(pr, pa);
       }
-      this.auth.login(pr, pa);
     },
 
     logout: function() {
-      this.auth.logout();
+      if (navigator.onLine === false) {
+        this.queuedLogout = true;
+      } else {
+        this.auth.logout();
+      }
+    },
+
+    onlineHandler: function() {
+      if (this.queuedLogout) {
+        this.queuedLogout = false;
+        this.logout();
+      } else if (this.queuedLogin) {
+        this.login(this.queuedLogin.provider, this.queuedLogin.params);
+        this.queuedLogin = null;
+      }
     }
 
   });
