@@ -324,11 +324,15 @@ Example:
       this.childEvent('child-added', snapshot);
     },
     childChanged: function(snapshot) {
-      this.modulateData('updateData', snapshot);
+      if (!this.valueLoading) {
+        this.modulateData('updateData', snapshot);
+      }
       this.childEvent('child-changed', snapshot);
     },
     childRemoved: function(snapshot) {
-      this.modulateData('removeData', snapshot);
+      if (!this.valueLoading) {
+        this.modulateData('removeData', snapshot);
+      }
       this.childEvent('child-removed', snapshot);
     },
     childEvent: function(kind, snapshot) {
