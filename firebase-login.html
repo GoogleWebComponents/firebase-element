@@ -118,8 +118,8 @@ Element wrapper for the Firebase Simple Login API (https://www.firebase.com/docs
       if (navigator.onLine === false) {
         this.queuedLogin = {provider: provider, params: params};
       } else {
-        var pr = provider instanceof String ? provider : this.provider;
-        var pa = (provider instanceof String ? params : provider) || this.params;
+        var pr = (typeof(provider) === 'string' || provider instanceof String) ? provider : this.provider;
+        var pa = ((typeof(provider) === 'string' || provider instanceof String) ? params : provider) || this.params;
         if (typeof pa == 'string') {
           pa = JSON.parse(pa);
         }
