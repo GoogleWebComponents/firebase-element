@@ -35,6 +35,30 @@ Element wrapper for the Firebase Simple Login API (https://www.firebase.com/docs
      */
 
     /**
+     * Fired when user is created (password provider type)
+     * 
+     * @event user-created
+     */
+
+    /**
+     * Fired when user changes their password (password provider type)
+     * 
+     * @event password-changed
+     */
+
+    /**
+     * Fired when password reset email is sent (password provider type)
+     * 
+     * @event password-reset
+     */
+
+    /**
+     * Fired when user is removed (password provider type)
+     * 
+     * @event removed-user
+     */
+       
+    /**
      * Firebase location URL (must have simple login enabled via Forge interface).
      * @attribute location
      * @type String
@@ -77,6 +101,13 @@ Element wrapper for the Firebase Simple Login API (https://www.firebase.com/docs
      * @type Object
      */
     params: null,
+
+    /**
+     * When using a password provider this allows passwords to be required (Firebase does not require passwords)
+     * @attribute passwordRequired
+     * @type Boolean
+     */
+     passwordRequired: false,
 
     ready: function() {
       if (!this.location) {
@@ -143,6 +174,51 @@ Element wrapper for the Firebase Simple Login API (https://www.firebase.com/docs
         this.login(this.queuedLogin.provider, this.queuedLogin.params);
         this.queuedLogin = null;
       }
+    },
+    
+    create: function(email, password) {
+        if (this.passwordRequired && email != "" && password == "") {
+          this.fire('error', {message:{message:"Password required"}})
+          return;
+        }
+
+        this.auth.createUser(email, password, function(error, user) {
+          if (!error) {
+            this.fire('user-created', {user: user});
+          } else {
+            this.fire('error', {message: error});
+          }
+        }.bind(this));
+      },
+
+    changePassword: function(email, oldPassword, newPassword) {
+      this.auth.changePassword(email, oldPassword, newPassword, function(error, success) {
+        if (!error) {
+          this.fire('password-changed');
+        } else {
+          this.fire('error', {message: error});					
+        }
+      }.bind(this));
+    },
+
+    sendPasswordResetEmail: function(email) {
+      this.auth.sendPasswordResetEmail(email, function(error, success) {
+        if (!error) {
+          this.fire('password-reset');
+        } else {
+          this.fire('error', {message: error});					
+        }
+      }.bind(this));
+    },
+
+    removeUser: function(email, password) {
+      this.auth.removeUser(email, password, function(error, success) {
+        if (!error) {
+          this.fire('removed-user');
+        } else {
+          this.fire('error', {message: error});					
+        }
+      }.bind(this));
     }
 
   });
