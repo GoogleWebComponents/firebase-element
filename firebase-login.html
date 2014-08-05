@@ -55,7 +55,7 @@ Element wrapper for the Firebase Simple Login API (https://www.firebase.com/docs
     /**
      * Fired when user is removed (password provider type)
      * 
-     * @event removed-user
+     * @event user-removed
      */
        
     /**
@@ -102,13 +102,6 @@ Element wrapper for the Firebase Simple Login API (https://www.firebase.com/docs
      */
     params: null,
 
-    /**
-     * When using a password provider this allows passwords to be required (Firebase does not require passwords)
-     * @attribute passwordRequired
-     * @type Boolean
-     */
-     passwordRequired: false,
-
     ready: function() {
       if (!this.location) {
         // FIXME(kschaaf): doesn't seem to be a way to un-register auth callbacks, so
@@ -119,7 +112,7 @@ Element wrapper for the Firebase Simple Login API (https://www.firebase.com/docs
       this.auth = new FirebaseSimpleLogin(this.ref, function(error, user) {
         if (error) {
           // an error occurred while attempting login
-          this.fire('error', {message: error});
+          this.fire('error', error);
         } else if (user) {
           // user authenticated with Firebase
           this.user = user;
@@ -145,6 +138,26 @@ Element wrapper for the Firebase Simple Login API (https://www.firebase.com/docs
       }.bind(this));
     },
 
+    /**
+     * Performs a login attempt, using the `provider` specified via attribute/property,
+     * or optionally via `provider` argument to the `login` function.  Optionally, 
+     * provider-specific login parameters can be specified via attribute (JSON)/property,
+     * or via the `params` argument to the `login` function.
+     * 
+     * If the login is successful, the `login` event is fired, with `e.detail.user`
+     * containing the authenticated user object from Firebase.
+     *
+     * If login fails, the `error` event is fired, with `e.detail` containing error
+     * information supplied from Firebase.
+     *
+     * If the browswer supports `navigator.onLine` network status reporting and the
+     * network is currently offline, the login attempt will be queued until the network
+     * is restored.
+     *
+     * @method login
+     * @param {string} provider (optional)
+     * @param {string} params (optional)
+     */
     login: function(provider, params) {
       if (navigator.onLine === false) {
         this.queuedLogin = {provider: provider, params: params};
@@ -158,6 +171,20 @@ Element wrapper for the Firebase Simple Login API (https://www.firebase.com/docs
       }
     },
 
+    /**
+     * Performs a logout attempt.
+     * 
+     * If the login is successful, the `logout` event is fired.
+     *
+     * If login fails, the `error` event is fired, with `e.detail` containing error
+     * information supplied from Firebase.
+     *
+     * If the browswer supports `navigator.onLine` network status reporting and the
+     * network is currently offline, the logout attempt will be queued until the network
+     * is restored.
+     *
+     * @method logout
+     */
     logout: function() {
       if (navigator.onLine === false) {
         this.queuedLogout = true;
@@ -176,47 +203,90 @@ Element wrapper for the Firebase Simple Login API (https://www.firebase.com/docs
       }
     },
     
-    create: function(email, password) {
-        if (this.passwordRequired && email != "" && password == "") {
-          this.fire('error', {message:{message:"Password required"}})
-          return;
-        }
-
+    /**
+     * Creates a "password provider"-based user account.
+     *
+     * If the operation is successful, the `user-created` event is fired.
+     *
+     * If the operation fails, the `error` event is fired, with `e.detail` 
+     * containing error information supplied from Firebase.
+     *
+     * @method createUser
+     * @param {string} email
+     * @param {string} password
+     */
+    createUser: function(email, password) {
         this.auth.createUser(email, password, function(error, user) {
           if (!error) {
             this.fire('user-created', {user: user});
           } else {
-            this.fire('error', {message: error});
+            this.fire('error', error);
           }
         }.bind(this));
       },
 
+    /**
+     * Changes the password of a "password provider"-based user account.
+     *
+     * If the operation is successful, the `user-created` event is fired.
+     *
+     * If the operation fails, the `error` event is fired, with `e.detail` 
+     * containing error information supplied from Firebase.
+     *
+     * @method changePassword
+     * @param {string} email
+     * @param {string} oldPassword
+     * @param {string} newPassword
+     */
     changePassword: function(email, oldPassword, newPassword) {
       this.auth.changePassword(email, oldPassword, newPassword, function(error, success) {
         if (!error) {
           this.fire('password-changed');
         } else {
-          this.fire('error', {message: error});					
+          this.fire('error', error);
         }
       }.bind(this));
     },
 
+    /**
+     * Sends a password reset email for a "password provider"-based user account.
+     *
+     * If the operation is successful, the `user-created` event is fired.
+     *
+     * If the operation fails, the `error` event is fired, with `e.detail` 
+     * containing error information supplied from Firebase.
+     *
+     * @method sendPasswordResetEmail
+     * @param {string} email
+     */
     sendPasswordResetEmail: function(email) {
       this.auth.sendPasswordResetEmail(email, function(error, success) {
         if (!error) {
           this.fire('password-reset');
         } else {
-          this.fire('error', {message: error});					
+          this.fire('error', error);
         }
       }.bind(this));
     },
 
+    /**
+     * Removes a "password provider"-based user account.
+     *
+     * If the operation is successful, the `user-created` event is fired.
+     *
+     * If the operation fails, the `error` event is fired, with `e.detail` 
+     * containing error information supplied from Firebase.
+     *
+     * @method removeUser
+     * @param {string} email
+     * @param {string} password
+     */
     removeUser: function(email, password) {
       this.auth.removeUser(email, password, function(error, success) {
         if (!error) {
-          this.fire('removed-user');
+          this.fire('user-removed');
         } else {
-          this.fire('error', {message: error});					
+          this.fire('error', error);
         }
       }.bind(this));
     }
