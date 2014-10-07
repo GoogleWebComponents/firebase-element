@@ -8,15 +8,14 @@
     subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
 -->
 <link rel="import" href="firebase-import.html">
-<link rel="import" href="firebase-simple-login-import.html">
 <link rel="import" href="../polymer/polymer.html">
 
 <polymer-element name="firebase-login" attributes="location provider user autoLogin statusKnown params">
 <!--
-Element wrapper for the Firebase Simple Login API (https://www.firebase.com/docs/security/simple-login-overview.html).
+Element wrapper for the Firebase authentication API (https://www.firebase.com/docs/web/guide/user-auth.html).
 
 @class firebase-login
-@blurb Element wrapper for the Firebase Simple Login API (https://www.firebase.com/docs/security/simple-login-overview.html).
+@blurb Element wrapper for the Firebase Simple Login API (https://www.firebase.com/docs/web/guide/user-auth.html).
 @status alpha
 @snap snap.png
 -->
@@ -71,20 +70,24 @@ Element wrapper for the Firebase Simple Login API (https://www.firebase.com/docs
      * Firebase location URL (must have simple login enabled via Forge interface).
      * @attribute location
      * @type String
+     * @default null
      */
     location: null,
 
     /**
-     * Default simple login provider type.  May be overridden at `login()`-time.
+     * Default login provider type.  May be one of: `anonymous`, `custom`, `password`
+     * `facebook`, `github`, `twitter`, `google`.
      * @attribute provider
      * @type String
+     * @default 'anonymous'
      */
     provider: 'anonymous',
 
     /**
-     * When logged in, this property reflects the firebase user object.
+     * When logged in, this property reflects the firebase user auth object.
      * @attribute user
      * @type Object
+     * @default null
      */
     user: null,
 
@@ -94,6 +97,7 @@ Element wrapper for the Firebase Simple Login API (https://www.firebase.com/docs
      * a login UI, such as 'anonymous'.
      * @attribute autoLogin
      * @type Boolean
+     * @default false
      */
     autoLogin: false,
 
@@ -101,6 +105,7 @@ Element wrapper for the Firebase Simple Login API (https://www.firebase.com/docs
      * When true, login status can be determined by checking `user` property.
      * @attribute statusKnown
      * @type Boolean
+     * @default false
      */
     statusKnown: false,
 
@@ -108,43 +113,88 @@ Element wrapper for the Firebase Simple Login API (https://www.firebase.com/docs
      * Provider-specific parameters to pass to login.  May be overridden at `login()`-time.
      * @attribute params
      * @type Object
+     * @default null
      */
     params: null,
 
+    /**
+     * Provider-specific options to pass to login, for provider types that take a second
+     * object to pass firebase-specific options.  May be overridden at `login()`-time.
+     * @attribute options
+     * @type Object
+     * @default null
+     */
+    options: null,
+
+    /**
+     * For OAuth provider types (`facebook`, `twitter`, `github`, `google`), determines
+     * whether the login UI is presented via redirect, as opposed to popup (default).
+     * @attribute redirect
+     * @type Boolean
+     * @default false
+     */
+    redirect: false,
+
     ready: function() {
-      if (!this.location) {
-        // FIXME(kschaaf): doesn't seem to be a way to un-register auth callbacks, so
-        // for now require a static location (switching locations should be rare)
-        console.error("firebase-login requires a static location");
+      this._boundAuthHandler = this._authHandler.bind(this);
+      this._boundOnlineHandler = this._onlineHandler.bind(this);
+    },
+
+    attached: function() {
+      window.addEventListener('online', this._boundOnlineHandler);
+      if (this.ref) {
+        this.locationChanged();
       }
-      this.ref = new Firebase(this.location);
-      this.auth = new FirebaseSimpleLogin(this.ref, function(error, user) {
-        if (error) {
-          // an error occurred while attempting login
-          this.fire('error', error);
-        } else if (user) {
-          // user authenticated with Firebase
-          this.user = user;
-          this.statusKnown = true;
-          this.fire('login', {user: user});
-        } else {
-          this.user = null;
-          if (this.statusKnown) {
-            this.fire('logout');
-          }
-          if (this.queuedLogin) {
-            this.login(this.queuedLogin.provider, this.queuedLogin.params);
-            this.queuedLogin = null;
-          } else if (!this.statusKnown && this.autoLogin) {
-            this.login();                
-          }
-          this.statusKnown = true;
+    },
+
+    detached: function() {
+      window.removeEventListener(this._boundOnlineHandler);
+      this.ref.offAuth(this._boundAuthHandler);
+    },
+
+    locationChanged: function() {
+      if (this.location != this._location) {
+        if (this._location) {
+          this.ref.offAuth(this._boundAuthHandler);
         }
-      }.bind(this));
-      
-      window.addEventListener('online', function() {
-        this.onlineHandler();
-      }.bind(this));
+      }
+      this._location = this.location;
+      if (this._location) {
+        this.ref = new Firebase(this.location);
+        this.ref.onAuth(this._boundAuthHandler);
+      } else {
+        this.ref = null;
+      }
+    },
+
+    _loginHandler: function(error, user) {
+      if (error) {
+        // an error occurred while attempting login
+        this.fire('error', error);
+      } else {
+        this._authHandler(user);
+      } 
+    },
+
+    _authHandler: function(user) {
+      if (user) {
+        // user authenticated with Firebase
+        this.user = user;
+        this.statusKnown = true;
+        this.fire('login', {user: user});
+      } else {
+        this.user = null;
+        if (this.statusKnown) {
+          this.fire('logout');
+        }
+        if (this.queuedLogin) {
+          this.login(this.queuedLogin.params, this.queuedLogin.options);
+          this.queuedLogin = null;
+        } else if (!this.statusKnown && this.autoLogin) {
+          this.login();                
+        }
+        this.statusKnown = true;
+      }      
     },
 
     /**
@@ -164,19 +214,38 @@ Element wrapper for the Firebase Simple Login API (https://www.firebase.com/docs
      * is restored.
      *
      * @method login
-     * @param {string} provider (optional)
      * @param {string} params (optional)
+     * @param {string} options (optional)
      */
-    login: function(provider, params) {
+    login: function(params, options) {
       if (navigator.onLine === false) {
-        this.queuedLogin = {provider: provider, params: params};
+        this.queuedLogin = {params: params, options: options};
       } else {
-        var pr = (typeof(provider) === 'string' || provider instanceof String) ? provider : this.provider;
-        var pa = ((typeof(provider) === 'string' || provider instanceof String) ? params : provider) || this.params;
-        if (typeof pa == 'string') {
-          pa = JSON.parse(pa);
+        params = params || (this.params && JSON.parse(this.params)) || undefined;
+        options = options || (this.options && JSON.parse(this.options)) || undefined;
+        switch(this.provider) {
+          case 'password':
+            this.ref.authWithPassword(params, this._loginHandler.bind(this), options);
+            break;
+          case 'anonymous':
+            this.ref.authAnonymously(this._loginHandler.bind(this), params);
+            break;
+          case 'custom':
+            this.ref.authWithCustomToken(params.token, this._loginHandler.bind(this));
+            break;
+          case 'facebook':
+          case 'google':
+          case 'github':
+          case 'twitter':
+            if (this.redirect) {
+              this.ref.authWithOAuthRedirect(this.provider, this._loginHandler.bind(this), params);
+            } else {
+              this.ref.authWithOAuthPopup(this.provider, this._loginHandler.bind(this), params);
+            }
+            break;
+          default:
+            throw 'Unknown provider: ' + this.provider;
         }
-        this.auth.login(pr, pa);
       }
     },
 
@@ -198,16 +267,16 @@ Element wrapper for the Firebase Simple Login API (https://www.firebase.com/docs
       if (navigator.onLine === false) {
         this.queuedLogout = true;
       } else {
-        this.auth.logout();
+        this.ref.unauth();
       }
     },
 
-    onlineHandler: function() {
+    _onlineHandler: function() {
       if (this.queuedLogout) {
         this.queuedLogout = false;
         this.logout();
       } else if (this.queuedLogin) {
-        this.login(this.queuedLogin.provider, this.queuedLogin.params);
+        this.login(this.queuedLogin.params, this.queuedLogin.options);
         this.queuedLogin = null;
       }
     },
@@ -225,9 +294,9 @@ Element wrapper for the Firebase Simple Login API (https://www.firebase.com/docs
      * @param {string} password
      */
     createUser: function(email, password) {
-        this.auth.createUser(email, password, function(error, user) {
+        this.ref.createUser({email: email, password: password}, function(error) {
           if (!error) {
-            this.fire('user-created', {user: user});
+            this.fire('user-created');
           } else {
             this.fire('error', error);
           }
@@ -248,7 +317,11 @@ Element wrapper for the Firebase Simple Login API (https://www.firebase.com/docs
      * @param {string} newPassword
      */
     changePassword: function(email, oldPassword, newPassword) {
-      this.auth.changePassword(email, oldPassword, newPassword, function(error, success) {
+      this.ref.changePassword({
+        email: email,
+        oldPassword: oldPassword,
+        newPassword: newPassword
+      }, function(error) {
         if (!error) {
           this.fire('password-changed');
         } else {
@@ -269,7 +342,7 @@ Element wrapper for the Firebase Simple Login API (https://www.firebase.com/docs
      * @param {string} email
      */
     sendPasswordResetEmail: function(email) {
-      this.auth.sendPasswordResetEmail(email, function(error, success) {
+      this.ref.resetPassword({email: email}, function(error) {
         if (!error) {
           this.fire('password-reset');
         } else {
@@ -291,7 +364,7 @@ Element wrapper for the Firebase Simple Login API (https://www.firebase.com/docs
      * @param {string} password
      */
     removeUser: function(email, password) {
-      this.auth.removeUser(email, password, function(error, success) {
+      this.ref.removeUser({email: email, password: password}, function(error, success) {
         if (!error) {
           this.fire('user-removed');
         } else {
