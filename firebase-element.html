@@ -138,6 +138,14 @@ Example:
        */
 
       /**
+       * Fired when an error occurs on an interaction with Firebase.  The
+       * `details.error` property contains the `Error` object provided by
+       * the Firebase API.
+       *
+       * @event error
+       */
+
+      /**
        * Firebase location mapped to `data`.
        * @attribute location
        * @type String
@@ -243,7 +251,7 @@ Example:
       // data acquisition
       this.dataReady = false;
       this.valueLoading = true;
-      this.query.once('value', this.valueLoaded, this);
+      this.query.once('value', this.valueLoaded, this.errorHandler, this);
       // observe server-side data
       this.observeQuery();
     },
@@ -270,9 +278,9 @@ Example:
     //
     observeQuery: function() {
       // server side dynamics
-      this.query.on('child_added', this.childAdded, this);
-      this.query.on('child_changed', this.childChanged, this);
-      this.query.on('child_removed', this.childRemoved, this);
+      this.query.on('child_added', this.childAdded, this.errorHandler, this);
+      this.query.on('child_changed', this.childChanged, this.errorHandler, this);
+      this.query.on('child_removed', this.childRemoved, this.errorHandler, this);
     },
     closeQuery: function() {
       if (this.query) {
@@ -305,7 +313,7 @@ Example:
     },
     priorityChanged: function() {
       if (this.ref && (this.priority != null)) {
-        this.ref.setPriority(this.priority);
+        this.ref.setPriority(this.priority, this.errorHandler);
       }
     },
     discardObservations: function() {
@@ -413,31 +421,36 @@ Example:
     commitProperty: function(key) {
       this.log && console.log('commitProperty ' + key);
       if (this.ref) {
-        this.ref.child(key).set(this.data[key]);
+        this.ref.child(key).set(this.data[key], this.errorHandler);
       }
     },
     remove: function(key) {
-      this.ref.child(key).remove();
+      this.ref.child(key).remove(this.errorHandler);
     },
     commit: function() {
       this.log && console.log('commit');
       if (this.ref) {
         if (this.priority != null) {
-          this.ref.setWithPriority(this.data || {}, this.priority);
+          this.ref.setWithPriority(this.data || {}, this.priority, this.errorHandler);
         } else {
-          this.ref.set(this.data || {});
+          this.ref.set(this.data || {}, this.errorHandler);
         }
       }
     },
     push: function(item) {
       var neo;
       if (this.data instanceof Array) {
-        this.ref.commitProperty(this.data.push(item)-1);
+        this.commitProperty(this.data.push(item)-1);
       } else {
-        neo = this.ref.push(item);
+        neo = this.ref.push(item, this.errorHandler);
       }
       this.dataChange();
       return neo;
+    },
+    errorHandler: function(error) {
+      if (error) {
+        this.fire('error', {error: error});
+      }
     }
   });
 </script>
