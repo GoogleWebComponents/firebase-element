@@ -377,7 +377,7 @@ Example:
       var key = snapshot.name();
       if (this.data instanceof Array) {
         this.data.splice(key, 1);
-        if (data.length == 0) {
+        if (this.data.length == 0) {
           this._setData(null);
         }
       } else if (this.data) {
