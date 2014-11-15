@@ -1,28 +1,39 @@
 <!--
-    @license
-    Copyright (c) 2014 The Polymer Project Authors. All rights reserved.
-    This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
-    The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
-    The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
-    Code distributed by Google as part of the polymer project is also
-    subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+@license
+Copyright (c) 2014 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
 -->
 <!doctype html>
 <html>
 <head>
-
   <title>firebase-element</title>
-
   <script src="../../webcomponentsjs/webcomponents.js"></script>
-  
   <link rel="import" href="../firebase-element.html">
-
 </head>
+
 <body unresolved>
 
   <template is="auto-binding">
+    <style>
+    .dinosaur-row {
+      width: 760px;
+      padding: 5px;
+      text-align: right;
+      border-bottom: 1px dotted;
+    }
+    </style>
 
     <firebase-element id="base" on-data-change="{{dataChange}}" data="{{data}}" location="https://treedata-demo.firebaseio.com/demo" log></firebase-element>
+
+    <firebase-element id="dinosaur" on-data-change="{{dinosaurDataChange}}" data="{{dinosaurData}}" keys="{{dinosaurKeys}}" orderByChild="order" location="https://dinosaur-facts.firebaseio.com/"></firebase-element>
+    <firebase-element id="dinosaurChild" childEvents on-child-added="{{dinosaurChildAdded}}" orderByChild="order" location="https://dinosaur-facts.firebaseio.com/" log>
+    <firebase-element id="dinosaurLimitFirst" data="{{dinosaurLimitFirstData}}" keys="{{dinosaurLimitFirstKeys}}" limitToFirst="2" location="https://dinosaur-facts.firebaseio.com/"></firebase-element>
+    <firebase-element id="dinosaurLimitLast" data="{{dinosaurLimitLastData}}" keys="{{dinosaurLimitLastKeys}}" limitToLast="3" location="https://dinosaur-facts.firebaseio.com/"></firebase-element>
+    <firebase-element id="dinosaurEqualTo"  data="{{dinosaurEqualToData}}" keys="{{dinosaurEqualToKeys}}" orderByChild="order" equalTo="ornithischia"  location="https://dinosaur-facts.firebaseio.com/"></firebase-element>
 
     <h3>Top-level properties persist automatically:</h3>
 
@@ -35,11 +46,11 @@
     <h3>Nested properties must be persisted manually:</h3>
 
     <input value="{{data.more.color}}">
-    
+
     <button on-tap="{{commitMore}}">Commit data.more</button>
-     
+
     <hr>
-    
+
     <h3>Remote Data</h3>
     <pre>{{json}}</pre>
 
@@ -49,56 +60,317 @@
     <button on-tap="{{removeLocal}}">Remove Local</button>
     <button on-tap="{{resetRemote}}">Reset remote</button>
     <button on-tap="{{removeRemote}}">Remove Remote</button>
+    <br>
+    <hr>
 
+    <h2>Dinosaur Facts All</h2>
+    <div horizontal layout top style="font-weight: bold; padding: 5px; text-align: right; border: 1px solid; width: 760px;">
+      <div style="width: 150px; text-align: left;">Name</div>
+      <div style="width: 100px;">Height</div>
+      <div style="width: 100px;">Length</div>
+      <div style="width: 100px;">Weight</div>
+      <div style="width: 100px;">Appeared</div>
+      <div style="width: 100px;">Vanished</div>
+      <div style="width: 100px;">Order</div>
+    </div>
+    <template repeat="{{key in dinosaurKeys }}">
+      <div horizontal layout top style="padding: 5px; text-align: right; border-bottom: 1px dotted; width: 760px;">
+        <div style="width: 150px; text-align: left;">{{key}}</div>
+        <div style="width: 100px;">{{dinosaurData[key].height}}</div>
+        <div style="width: 100px;">{{dinosaurData[key].length}}</div>
+        <div style="width: 100px;">{{dinosaurData[key].weight}}</div>
+        <div style="width: 100px;">{{dinosaurData[key].appeared}}</div>
+        <div style="width: 100px;">{{dinosaurData[key].vanished}}</div>
+        <div style="width: 100px;">{{dinosaurData[key].order}}</div>
+      </div>
+    </template>
+    <br>
+    <br>
+
+    <h2>Dinosaur Facts order by order All</h2>
+    <div horizontal layout top style="font-weight: bold; padding: 5px; text-align: right; border: 1px solid; width: 760px;">
+      <div style="width: 150px; text-align: left;">Name</div>
+      <div style="width: 100px;">Height</div>
+      <div style="width: 100px;">Length</div>
+      <div style="width: 100px;">Weight</div>
+      <div style="width: 100px;">Appeared</div>
+      <div style="width: 100px;">Vanished</div>
+      <div style="width: 100px;">Order</div>
+    </div>
+    <div id="firebase-child-added-query-wrapper" vertical layout top style="width: 760px;"></div>
+    <br>
+    <br>
+
+    <h2>Dinosaur Order Equal To ornithischia</h2>
+    <div horizontal layout top style="font-weight: bold; padding: 5px; text-align: right; border: 1px solid; width: 760px;">
+      <div style="width: 150px; text-align: left;">Name</div>
+      <div style="width: 100px;">Height</div>
+      <div style="width: 100px;">Length</div>
+      <div style="width: 100px;">Weight</div>
+      <div style="width: 100px;">Appeared</div>
+      <div style="width: 100px;">Vanished</div>
+      <div style="width: 100px;">Order</div>
+    </div>
+    <template repeat="{{key in dinosaurEqualToKeys }}">
+      <div horizontal layout top style="padding: 5px; text-align: right; border-bottom: 1px dotted; width: 760px;">
+        <div style="width: 150px; text-align: left;">{{key}}</div>
+        <div style="width: 100px;">{{dinosaurData[key].height}}</div>
+        <div style="width: 100px;">{{dinosaurData[key].length}}</div>
+        <div style="width: 100px;">{{dinosaurData[key].weight}}</div>
+        <div style="width: 100px;">{{dinosaurData[key].appeared}}</div>
+        <div style="width: 100px;">{{dinosaurData[key].vanished}}</div>
+        <div style="width: 100px;">{{dinosaurData[key].order}}</div>
+      </div>
+    </template>
+    <br>
+    <br>
+
+    <h2>Dinosaur Facts First 2</h2>
+    <div horizontal layout top style="font-weight: bold; padding: 5px;; text-align: right; border: 1px solid; width: 760px;">
+      <div style="width: 150px; text-align: left;">Name</div>
+      <div style="width: 100px;">Height</div>
+      <div style="width: 100px;">Length</div>
+      <div style="width: 100px;">Weight</div>
+      <div style="width: 100px;">Appeared</div>
+      <div style="width: 100px;">Vanished</div>
+      <div style="width: 100px;">Order</div>
+    </div>
+    <template repeat="{{key in dinosaurLimitFirstKeys }}">
+      <div horizontal layout top style="padding: 5px; text-align: right; border-bottom: 1px dotted; width: 760px;">
+        <div style="width: 150px; text-align: left;">{{key}}</div>
+        <div style="width: 100px;">{{dinosaurLimitFirstData[key].height}}</div>
+        <div style="width: 100px;">{{dinosaurLimitFirstData[key].length}}</div>
+        <div style="width: 100px;">{{dinosaurLimitFirstData[key].weight}}</div>
+        <div style="width: 100px;">{{dinosaurLimitFirstData[key].appeared}}</div>
+        <div style="width: 100px;">{{dinosaurLimitFirstData[key].vanished}}</div>
+        <div style="width: 100px;">{{dinosaurLimitFirstData[key].order}}</div>
+      </div>
+    </template>
+    <br>
+    <br>
+
+    <h2>Dinosaur Facts Last 3</h2>
+    <div horizontal layout top style="font-weight: bold; padding: 5px;; text-align: right; border: 1px solid; width: 760px;">
+      <div style="width: 150px; text-align: left;">Name</div>
+      <div style="width: 100px;">Height</div>
+      <div style="width: 100px;">Length</div>
+      <div style="width: 100px;">Weight</div>
+      <div style="width: 100px;">Appeared</div>
+      <div style="width: 100px;">Vanished</div>
+      <div style="width: 100px;">Order</div>
+    </div>
+    <template repeat="{{key in dinosaurLimitLastKeys }}">
+      <div horizontal layout top style="padding: 5px; text-align: right; border-bottom: 1px dotted; width: 760px;">
+        <div style="width: 150px; text-align: left;">{{key}}</div>
+        <div style="width: 100px;">{{dinosaurLimitLastData[key].height}}</div>
+        <div style="width: 100px;">{{dinosaurLimitLastData[key].length}}</div>
+        <div style="width: 100px;">{{dinosaurLimitLastData[key].weight}}</div>
+        <div style="width: 100px;">{{dinosaurLimitLastData[key].appeared}}</div>
+        <div style="width: 100px;">{{dinosaurLimitLastData[key].vanished}}</div>
+        <div style="width: 100px;">{{dinosaurLimitLastData[key].order}}</div>
+      </div>
+    </template>
+    <br>
+    <br>
+
+    <h2>Dinosaur Facts order by order staring at p</h2>
+    <div horizontal layout top style="font-weight: bold; padding: 5px; text-align: right; border: 1px solid; width: 760px;">
+      <div style="width: 150px; text-align: left;">Name</div>
+      <div style="width: 100px;">Height</div>
+      <div style="width: 100px;">Length</div>
+      <div style="width: 100px;">Weight</div>
+      <div style="width: 100px;">Appeared</div>
+      <div style="width: 100px;">Vanished</div>
+      <div style="width: 100px;">Order</div>
+    </div>
+    <div id="firebase-query-wrapper" vertical layout top style="width: 760px;"></div>
+
+    <br>
+    <br>
 
   </template>
-  
+
   <script>
-    
-    addEventListener('template-bound', function(e) {
+  var dataQuery = {};
 
-      scope = e.target;
+  addEventListener('polymer-ready', function(e) {
+    console.log('polymer-ready');
 
-      scope.resetLocal = function() {
-        // direct setting of data is persisted automatically
-        this.data = {
-          name: 'anonymous',
-          info: 'none',
-          more: {
-            color: "yellow"
-          }
-        };
-      };
+  });
 
-      scope.removeLocal = function() {
-        this.data = null;
-      };
-      
-      scope.resetRemote = function() {
-        // Simulate other actor setting data to same remote location
-        new Firebase('https://treedata-demo.firebaseio.com/demo').set({
-          name: 'anonymous',
-          info: 'none',
-          more: {
-            color: "yellow"
-          }
-        });
-      };
+  addEventListener('template-bound', function(e) {
+    console.log('template-bound');
+    scope = e.target;
 
-      scope.removeRemote = function() {
-        // Simulate other actor removing data from same remote location
-        new Firebase('https://treedata-demo.firebaseio.com/demo').remove();
+    scope.resetLocal = function() {
+      // direct setting of data is persisted automatically
+      this.data = {
+        name: 'anonymous',
+        info: 'none',
+        more: {
+          color: "yellow"
+        }
       };
+    };
 
-      scope.commitMore = function() {
-        this.$.base.commitProperty('more');
-      };
-      
-      scope.dataChange = function() {
-        this.json = JSON.stringify(this.data, null, '\t');
-      };
-      
-    });
+    scope.removeLocal = function() {
+      this.data = null;
+    };
+
+    scope.resetRemote = function() {
+      // Simulate other actor setting data to same remote location
+      new Firebase('https://treedata-demo.firebaseio.com/demo').set({
+        name: 'anonymous',
+        info: 'none',
+        more: {
+          color: "yellow"
+        }
+      });
+    };
+
+    scope.removeRemote = function() {
+      // Simulate other actor removing data from same remote location
+      new Firebase('https://treedata-demo.firebaseio.com/demo').remove();
+    };
+
+    scope.commitMore = function() {
+      this.$.base.commitProperty('more');
+    };
+
+    scope.dataChange = function() {
+      this.json = JSON.stringify(this.data, null, '\t');
+    };
+
+    scope.dinosaurDataChange = function() {
+      scope.listOrderByChild();
+    };
+
+    scope.dinosaurChildDataChange = function() {
+      console.log("dinosaurChildDataChange", this.dinosaurChildData);
+
+    };
+
+    scope.listOrderByChild = function() {
+      var ref = new Firebase("https://dinosaur-facts.firebaseio.com/");
+      // console.log('dinosaur-facts by child order startAt letter p');
+      var data = '';
+      var parentDiv = document.getElementById("firebase-query-wrapper");
+      var counter = 1;
+
+      var query = ref.orderByChild("order").startAt("p").on("child_added", function(snapshot) {
+        data = data + snapshot.key() + " was " + snapshot.val().height + " meters tall" + " -- order " + snapshot.val().order + '\n';
+
+        var rowDiv = document.createElement("div");
+        rowDiv.setAttribute('id','row_' + counter.toString());
+        rowDiv.setAttribute('class','dinosaur-row');
+        rowDiv.setAttribute('horizontal',true);
+        rowDiv.setAttribute('layout',true);
+        rowDiv.setAttribute('top',true);
+        parentDiv.appendChild(rowDiv);
+        var rowDivAdded = document.getElementById("row_" + counter.toString());
+
+        var keyDiv = document.createElement("div");
+        keyDiv.setAttribute('style',"width: 150px; text-align: left;");
+        keyDiv.innerHTML = snapshot.key();
+        rowDivAdded.appendChild(keyDiv);
+
+        var divStyle = "width: 100px;";
+
+        var heightDiv = document.createElement("div");
+        heightDiv.setAttribute('style',divStyle);
+        heightDiv.innerHTML = snapshot.val().height;
+        rowDivAdded.appendChild(heightDiv);
+
+        var weightDiv = document.createElement("div");
+        weightDiv.setAttribute('style',divStyle);
+        weightDiv.innerHTML = snapshot.val().weight;
+        rowDivAdded.appendChild(weightDiv);
+
+        var lengthDiv = document.createElement("div");
+        lengthDiv.setAttribute('style',divStyle);
+        lengthDiv.innerHTML = snapshot.val().length;
+        rowDivAdded.appendChild(lengthDiv);
+
+        var appearedDiv = document.createElement("div");
+        appearedDiv.setAttribute('style',divStyle);
+        appearedDiv.innerHTML = snapshot.val().appeared;
+        rowDivAdded.appendChild(appearedDiv);
+
+        var vanishedDiv = document.createElement("div");
+        vanishedDiv.setAttribute('style',divStyle);
+        vanishedDiv.innerHTML = snapshot.val().vanished;
+        rowDivAdded.appendChild(vanishedDiv);
+
+        var orderDiv = document.createElement("div");
+        orderDiv.setAttribute('style',divStyle);
+        orderDiv.innerHTML = snapshot.val().order;
+        rowDivAdded.appendChild(orderDiv);
+
+        counter++;
+
+      });
+      // console.log(data);
+    };
+
+    dinosaurChildCounter = 1;
+    scope.dinosaurChildAdded = function(event) {
+      var data = '';
+      var parentDiv = document.getElementById("firebase-child-added-query-wrapper");
+
+      data = event.detail.name + " was " + event.detail.value.height + " meters tall" + " -- order " + event.detail.value.order + " -- dinosaurChildCounter: " + dinosaurChildCounter;
+      console.log(data);
+
+      var rowDiv = document.createElement("div");
+      rowDiv.setAttribute('id','childRow_' + dinosaurChildCounter.toString());
+      rowDiv.setAttribute('class','dinosaur-row');
+      rowDiv.setAttribute('horizontal',true);
+      rowDiv.setAttribute('layout',true);
+      rowDiv.setAttribute('top',true);
+      parentDiv.appendChild(rowDiv);
+      var rowDivAdded = document.getElementById("childRow_" + dinosaurChildCounter.toString());
+
+      var keyDiv = document.createElement("div");
+      keyDiv.setAttribute('style',"width: 150px; text-align: left;");
+      keyDiv.innerHTML = event.detail.name;
+      rowDivAdded.appendChild(keyDiv);
+
+      var divStyle = "width: 100px;";
+
+      var heightDiv = document.createElement("div");
+      heightDiv.setAttribute('style',divStyle);
+      heightDiv.innerHTML = event.detail.value.height;
+      rowDivAdded.appendChild(heightDiv);
+
+      var weightDiv = document.createElement("div");
+      weightDiv.setAttribute('style',divStyle);
+      weightDiv.innerHTML = event.detail.value.weight;
+      rowDivAdded.appendChild(weightDiv);
+
+      var lengthDiv = document.createElement("div");
+      lengthDiv.setAttribute('style',divStyle);
+      lengthDiv.innerHTML = event.detail.value.length;
+      rowDivAdded.appendChild(lengthDiv);
+
+      var appearedDiv = document.createElement("div");
+      appearedDiv.setAttribute('style',divStyle);
+      appearedDiv.innerHTML = event.detail.value.appeared;
+      rowDivAdded.appendChild(appearedDiv);
+
+      var vanishedDiv = document.createElement("div");
+      vanishedDiv.setAttribute('style',divStyle);
+      vanishedDiv.innerHTML = event.detail.value.vanished;
+      rowDivAdded.appendChild(vanishedDiv);
+
+      var orderDiv = document.createElement("div");
+      orderDiv.setAttribute('style',divStyle);
+      orderDiv.innerHTML = event.detail.value.order;
+      rowDivAdded.appendChild(orderDiv);
+
+      dinosaurChildCounter++;
+
+    };
+
+  });
   </script>
 
 </body>
