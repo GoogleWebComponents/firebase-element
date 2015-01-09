@@ -306,7 +306,7 @@ Element wrapper for the Firebase authentication API (https://www.firebase.com/do
     /**
      * Changes the password of a "password provider"-based user account.
      *
-     * If the operation is successful, the `user-created` event is fired.
+     * If the operation is successful, the `password-changed` event is fired.
      *
      * If the operation fails, the `error` event is fired, with `e.detail` 
      * containing error information supplied from Firebase.
@@ -333,7 +333,7 @@ Element wrapper for the Firebase authentication API (https://www.firebase.com/do
     /**
      * Sends a password reset email for a "password provider"-based user account.
      *
-     * If the operation is successful, the `user-created` event is fired.
+     * If the operation is successful, the `password-reset` event is fired.
      *
      * If the operation fails, the `error` event is fired, with `e.detail` 
      * containing error information supplied from Firebase.
@@ -381,7 +381,7 @@ Element wrapper for the Firebase authentication API (https://www.firebase.com/do
     /**
      * Removes a "password provider"-based user account.
      *
-     * If the operation is successful, the `user-created` event is fired.
+     * If the operation is successful, the `user-removed` event is fired.
      *
      * If the operation fails, the `error` event is fired, with `e.detail` 
      * containing error information supplied from Firebase.
