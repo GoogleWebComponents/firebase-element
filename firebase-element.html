@@ -136,6 +136,13 @@ Example:
        *
        * @event data-change
        */
+       
+      /**
+       * Fired when the remote location has been read, whether or not data
+       * has been returned.
+       * 
+       * @event data-ready
+       */
 
       /**
        * Fired when an error occurs on an interaction with Firebase.  The
@@ -320,6 +327,7 @@ Example:
       this.log && console.log('acquired value ' + this.location);
       this.dataReady = true;
       this._setData(snapshot.val());
+      this.fire('data-ready', this.data);
       if (this.data) {
         this.dataChange();
       }
