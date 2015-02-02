@@ -349,7 +349,10 @@ Example:
     },
     closeQuery: function() {
       if (this.query) {
-        this.query.off();
+        this.query.off('child_added', this.childAdded, this);
+        this.query.off('child_changed', this.childChanged, this);
+        this.query.off('child_moved', this.childMoved, this);
+        this.query.off('child_removed', this.childRemoved, this);
       }
     },
     //
