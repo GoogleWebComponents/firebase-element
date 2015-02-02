@@ -306,7 +306,7 @@ Element wrapper for the Firebase authentication API (https://www.firebase.com/do
     /**
      * Changes the password of a "password provider"-based user account.
      *
-     * If the operation is successful, the `user-created` event is fired.
+     * If the operation is successful, the `password-changed` event is fired.
      *
      * If the operation fails, the `error` event is fired, with `e.detail` 
      * containing error information supplied from Firebase.
@@ -333,7 +333,7 @@ Element wrapper for the Firebase authentication API (https://www.firebase.com/do
     /**
      * Sends a password reset email for a "password provider"-based user account.
      *
-     * If the operation is successful, the `user-created` event is fired.
+     * If the operation is successful, the `password-reset` event is fired.
      *
      * If the operation fails, the `error` event is fired, with `e.detail` 
      * containing error information supplied from Firebase.
@@ -352,9 +352,36 @@ Element wrapper for the Firebase authentication API (https://www.firebase.com/do
     },
 
     /**
+    * Changes the email of a "password provider"-based user account.
+    *
+    * If the operation is successful, the `email-changed` event is fired.
+    *
+    * If the operation fails, the `error` event is fired, with `e.detail`
+    * containing error information supplied from Firebase.
+    *
+    * @method changeEmail
+    * @param {string} oldEmail
+    * @param {string} newEmail
+    * @param {string} Password
+    */
+    changeEmail: function(oldEmail, newEmail, password) {
+      this.ref.changeEmail({
+        oldEmail: oldEmail,
+        newEmail: newEmail,
+        password: password
+      }, function(error) {
+        if (!error) {
+          this.fire('email-changed');
+        } else {
+          this.fire('error', error);
+        }
+      }.bind(this));
+    },
+    
+    /**
      * Removes a "password provider"-based user account.
      *
-     * If the operation is successful, the `user-created` event is fired.
+     * If the operation is successful, the `user-removed` event is fired.
      *
      * If the operation fails, the `error` event is fired, with `e.detail` 
      * containing error information supplied from Firebase.
