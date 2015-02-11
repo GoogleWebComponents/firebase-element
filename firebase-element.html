@@ -136,11 +136,11 @@ Example:
        *
        * @event data-change
        */
-       
+
       /**
        * Fired when the remote location has been read, whether or not data
        * has been returned.
-       * 
+       *
        * @event data-ready
        */
 
@@ -204,15 +204,15 @@ Example:
       /**
        * Specify to order by key the set of records reflected on the client.
        * @attribute orderByKey
-       * @type Any
+       * @type Boolean
        */
-      orderByKey: null,
+      orderByKey: false,
       /**
        * Specify to order by priority the set of records reflected on the client.
        * @attribute orderByPriority
-       * @type Any
+       * @type Boolean
        */
-      orderByPriority: null,
+      orderByPriority: false,
       /**
        * Specify to create a query which includes children which match the specified value. The argument type depends on which orderBy*() function was used in this query. Specify a value that matches the orderBy*() type.
        * @attribute equalTo
@@ -316,7 +316,7 @@ Example:
       this.valueLoading = true;
       this.query.once('value', this.valueLoaded, this.errorHandler, this);
       // observe server-side data
-      this.observeQuery();
+      this.job('observeQuery', this.observeQuery, 0);
     },
     valueLoaded: function(snapshot) {
       this.valueLoading = false;
