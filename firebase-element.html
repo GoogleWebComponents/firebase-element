@@ -214,6 +214,12 @@ Example:
        */
       orderByPriority: false,
       /**
+       * Specify to order by value the set of records reflected on the client.
+       * @attribute orderByValue
+       * @type Boolean
+       */
+      orderByValue: false,
+      /**
        * Specify to create a query which includes children which match the specified value. The argument type depends on which orderBy*() function was used in this query. Specify a value that matches the orderBy*() type.
        * @attribute equalTo
        * @type Any
@@ -301,6 +307,9 @@ Example:
         }
         if (this.orderByPriority) {
           query = query.orderByPriority();
+        }
+        if (this.orderByValue) {
+          query = query.orderByValue();
         }
         if (this.equalTo) {
           query = query.equalTo(this.equalTo);
