@@ -1,8 +1,14 @@
 {
   "name": "firebase-element",
+  "version": "0.8.0",
   "private": true,
   "dependencies": {
-    "polymer": "Polymer/polymer#master",
-    "firebase": "^2.2"
+    "polymer": "polymer/polymer#v0.8.0-rc.6",
+    "firebase": "^2.2.0"
+  },
+  "devDependencies": {
+    "webcomponentsjs": "webcomponents/webcomponentsjs#^0.6.0",
+    "iron-doc-viewer": "polymerelements/iron-doc-viewer#^0.8.0",
+    "web-component-tester": "*"
   }
 }

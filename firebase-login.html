@@ -1,19 +1,17 @@
 <!--
-    @license
-    Copyright (c) 2014 The Polymer Project Authors. All rights reserved.
-    This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
-    The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
-    The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
-    Code distributed by Google as part of the polymer project is also
-    subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
 -->
-<link rel="import" href="firebase-import.html">
+<link rel="import" href="firebase.html">
 <link rel="import" href="../polymer/polymer.html">
 
-<polymer-element name="firebase-login" attributes="location provider user autoLogin statusKnown params redirect">
 <!--
 Element wrapper for the Firebase authentication API (https://www.firebase.com/docs/web/guide/user-auth.html).
-
 @class firebase-login
 @blurb Element wrapper for the Firebase Simple Login API (https://www.firebase.com/docs/web/guide/user-auth.html).
 @status alpha
@@ -21,123 +19,83 @@ Element wrapper for the Firebase authentication API (https://www.firebase.com/do
 -->
 
 <script>
-  
-  Polymer('firebase-login', {
+  Polymer({
+    is: 'firebase-login',
 
-    /**
-     * Fired when user is logged in
-     * 
-     * @event login
-     */
+    properties: {
+      /**
+       * Firebase location URL (must have simple login enabled via Forge interface).
+       */
+      location: {
+        type: String,
+        reflectToAttribute: true,
+        observer: 'locationChanged'
+      },
 
-    /**
-     * Fired when user is logged out
-     * 
-     * @event logout
-     */
+      /**
+       * Default login provider type.  May be one of: `anonymous`, `custom`, `password`
+       * `facebook`, `github`, `twitter`, `google`.
+       */
+      provider: {
+        type: String,
+        reflectToAttribute: true,
+        value: 'anonymous'
+      },
 
-    /**
-     * Fired when an error occurred logging in
-     * 
-     * @event error
-     */
+      /**
+       * When logged in, this property reflects the firebase user auth object.
+       */
+      user: {
+        type: Object,
+        readOnly: true,
+        notify: true
+      },
 
-    /**
-     * Fired when user is created (password provider type)
-     * 
-     * @event user-created
-     */
+      /**
+       * When true, login will be attempted if login status check determines no user is
+       * logged in.  Should generally only be used with provider types that do not present
+       * a login UI, such as 'anonymous'.
+       */
+      autoLogin: {
+        type: Boolean,
+        value: false
+      },
 
-    /**
-     * Fired when user changes their password (password provider type)
-     * 
-     * @event password-changed
-     */
+      /**
+       * When true, login status can be determined by checking `user` property.
+       */
+      statusKnown: {
+        type: Boolean,
+        readOnly: true,
+        notify: true
+      },
 
-    /**
-     * Fired when password reset email is sent (password provider type)
-     * 
-     * @event password-reset
-     */
+      /**
+       * Provider-specific parameters to pass to login.  May be overridden at `login()`-time.
+       */
+      params: {
+        type: Object
+      },
 
-    /**
-     * Fired when user is removed (password provider type)
-     * 
-     * @event user-removed
-     */
-       
-    /**
-     * Firebase location URL (must have simple login enabled via Forge interface).
-     * @attribute location
-     * @type String
-     * @default null
-     */
-    location: null,
+      /**
+       * Provider-specific options to pass to login, for provider types that take a second
+       * object to pass firebase-specific options.  May be overridden at `login()`-time.
+       */
+      options: {
+        type: Object
+      },
 
-    /**
-     * Default login provider type.  May be one of: `anonymous`, `custom`, `password`
-     * `facebook`, `github`, `twitter`, `google`.
-     * @attribute provider
-     * @type String
-     * @default 'anonymous'
-     */
-    provider: 'anonymous',
+      _boundAuthHandler: {
+        value: function() {
+          return this._authHandler.bind(this);
+        }
+      },
 
-    /**
-     * When logged in, this property reflects the firebase user auth object.
-     * @attribute user
-     * @type Object
-     * @default null
-     */
-    user: null,
-
-    /**
-     * When true, login will be attempted if login status check determines no user is
-     * logged in.  Should generally only be used with provider types that do not present
-     * a login UI, such as 'anonymous'.
-     * @attribute autoLogin
-     * @type Boolean
-     * @default false
-     */
-    autoLogin: false,
-
-    /**
-     * When true, login status can be determined by checking `user` property.
-     * @attribute statusKnown
-     * @type Boolean
-     * @default false
-     */
-    statusKnown: false,
-
-    /**
-     * Provider-specific parameters to pass to login.  May be overridden at `login()`-time.
-     * @attribute params
-     * @type Object
-     * @default null
-     */
-    params: null,
-
-    /**
-     * Provider-specific options to pass to login, for provider types that take a second
-     * object to pass firebase-specific options.  May be overridden at `login()`-time.
-     * @attribute options
-     * @type Object
-     * @default null
-     */
-    options: null,
-
-    /**
-     * For OAuth provider types (`facebook`, `twitter`, `github`, `google`), determines
-     * whether the login UI is presented via redirect, as opposed to popup (default).
-     * @attribute redirect
-     * @type Boolean
-     * @default false
-     */
-    redirect: false,
-
-    ready: function() {
-      this._boundAuthHandler = this._authHandler.bind(this);
-      this._boundOnlineHandler = this._onlineHandler.bind(this);
+      _boundOnlineHandler: {
+        value: function() {
+          return this._onlineHandler.bind(this);
+        }
+      }
     },
 
     attached: function() {
@@ -173,17 +131,17 @@ Element wrapper for the Firebase authentication API (https://www.firebase.com/do
         this.fire('error', error);
       } else {
         this._authHandler(user);
-      } 
+      }
     },
 
     _authHandler: function(user) {
       if (user) {
         // user authenticated with Firebase
-        this.user = user;
-        this.statusKnown = true;
+        this._setUser(user);
+        this._setStatusKnown(true);
         this.fire('login', {user: user});
       } else {
-        this.user = null;
+        this._setUser(null);
         if (this.statusKnown) {
           this.fire('logout');
         }
@@ -191,18 +149,18 @@ Element wrapper for the Firebase authentication API (https://www.firebase.com/do
           this.login(this.queuedLogin.params, this.queuedLogin.options);
           this.queuedLogin = null;
         } else if (!this.statusKnown && this.autoLogin) {
-          this.login();                
+          this.login();
         }
-        this.statusKnown = true;
-      }      
+        this._setStatusKnown(true);
+      }
     },
 
     /**
      * Performs a login attempt, using the `provider` specified via attribute/property,
-     * or optionally via `provider` argument to the `login` function.  Optionally, 
+     * or optionally via `provider` argument to the `login` function.  Optionally,
      * provider-specific login parameters can be specified via attribute (JSON)/property,
      * or via the `params` argument to the `login` function.
-     * 
+     *
      * If the login is successful, the `login` event is fired, with `e.detail.user`
      * containing the authenticated user object from Firebase.
      *
@@ -251,7 +209,7 @@ Element wrapper for the Firebase authentication API (https://www.firebase.com/do
 
     /**
      * Performs a logout attempt.
-     * 
+     *
      * If the login is successful, the `logout` event is fired.
      *
      * If login fails, the `error` event is fired, with `e.detail` containing error
@@ -280,13 +238,13 @@ Element wrapper for the Firebase authentication API (https://www.firebase.com/do
         this.queuedLogin = null;
       }
     },
-    
+
     /**
      * Creates a "password provider"-based user account.
      *
      * If the operation is successful, the `user-created` event is fired.
      *
-     * If the operation fails, the `error` event is fired, with `e.detail` 
+     * If the operation fails, the `error` event is fired, with `e.detail`
      * containing error information supplied from Firebase.
      *
      * @method createUser
@@ -308,7 +266,7 @@ Element wrapper for the Firebase authentication API (https://www.firebase.com/do
      *
      * If the operation is successful, the `password-changed` event is fired.
      *
-     * If the operation fails, the `error` event is fired, with `e.detail` 
+     * If the operation fails, the `error` event is fired, with `e.detail`
      * containing error information supplied from Firebase.
      *
      * @method changePassword
@@ -335,7 +293,7 @@ Element wrapper for the Firebase authentication API (https://www.firebase.com/do
      *
      * If the operation is successful, the `password-reset` event is fired.
      *
-     * If the operation fails, the `error` event is fired, with `e.detail` 
+     * If the operation fails, the `error` event is fired, with `e.detail`
      * containing error information supplied from Firebase.
      *
      * @method sendPasswordResetEmail
@@ -377,13 +335,13 @@ Element wrapper for the Firebase authentication API (https://www.firebase.com/do
         }
       }.bind(this));
     },
-    
+
     /**
      * Removes a "password provider"-based user account.
      *
      * If the operation is successful, the `user-removed` event is fired.
      *
-     * If the operation fails, the `error` event is fired, with `e.detail` 
+     * If the operation fails, the `error` event is fired, with `e.detail`
      * containing error information supplied from Firebase.
      *
      * @method removeUser
@@ -399,8 +357,6 @@ Element wrapper for the Firebase authentication API (https://www.firebase.com/do
         }
       }.bind(this));
     }
-
   });
-
 </script>
-</polymer-element>
+
