@@ -157,14 +157,16 @@ Example:
       location: {
         type: String,
         value: '',
-        reflectToAttribute: true
+        reflectToAttribute: true,
+        observer: 'locationChanged'
       },
 
       /**
        * Firebase `ref` object corresponding to `location`.
        */
       ref: {
-        type: Object
+        type: Object,
+        value: null
       },
 
       /**
@@ -250,7 +252,8 @@ Example:
        * The `data` object mapped to `location`.
        */
       data: {
-        type: Object
+        type: Object,
+        notify: true
       },
 
       /**
@@ -290,23 +293,34 @@ Example:
       log: {
         type: Boolean,
         value: false
+      },
+
+      query: {
+        type: Object
       }
     },
 
     observers: [
-      'requery(ref, limit, start, end, limitToFirst, limitToLast, equalTo)'
+      'requery(ref, limit, start, end, limitToFirst, limitToLast, equalTo)',
+      'dataChanged(data.*)'
     ],
 
     locationChanged: function() {
       // shut-down previous observers (if any)
       this.closeQuery();
-      this.closeObserver();
       // connect to db
       if (this.location) {
         this.ref = new Firebase(this.location);
+        this.valueLoading = true;
+        this.debouncedRequery();
       } else {
         this.ref = null;
+        this.data = null;
       }
+    },
+
+    debouncedRequery: function() {
+      this.debounce('requery', this.requery);
     },
 
     requery: function() {
@@ -316,7 +330,7 @@ Example:
       // construct new query
       var query = this.ref;
       if (query) {
-        if (this.start) {
+       if (this.start) {
           query = query.startAt(this.start);
         }
         if (this.end) {
@@ -347,19 +361,19 @@ Example:
         if (this.equalTo) {
           query = query.equalTo(this.equalTo);
         }
+
         this.query = query;
+        this.queryChanged();
       }
     },
 
     queryChanged: function() {
       // initialize
-      this._setData(null);
+      this._updateData(null);
       // data acquisition
-      this._setDataReady(false);
+      this.dataReady = false;
       this.valueLoading = true;
       this.query.once('value', this.valueLoaded, this.errorHandler, this);
-      // observe server-side data
-      this.job('observeQuery', this.observeQuery, 0);
     },
 
     valueLoaded: function(snapshot) {
@@ -369,18 +383,25 @@ Example:
         return;
       }
       this.log && console.log('acquired value ' + this.location);
-      this._setDataReady(true);
-      this._setData(snapshot.val());
-      this.fire('data-ready', this.data);
+      this.dataReady = true;
+      this._remoteValueChanged = true;
+      this._updateData(snapshot.val());
+      if (this.data) {
+        this.dataChange();
+      }
+      this.observeQuery();
+    },
+
+    valueUpdated: function(snapshot) {
+      this._updateData(snapshot.val());
       if (this.data) {
         this.dataChange();
       }
     },
 
-    _setData: function(data) {
-      this.closeObserver();
-      this.data = this._data = data;
-      this.observeData();
+    _updateData: function(data) {
+      this._lastData = data;
+      this.data = data;
     },
 
     //
@@ -388,45 +409,33 @@ Example:
     //
     observeQuery: function() {
       // server side dynamics
-      this.query.on('child_added', this.childAdded, this.errorHandler, this);
-      this.query.on('child_changed', this.childChanged, this.errorHandler, this);
-      this.query.on('child_moved', this.childMoved, this.errorHandler, this);
-      this.query.on('child_removed', this.childRemoved, this.errorHandler, this);
+      if (this.data instanceof Object || this.data instanceof Array) {
+        this.query.on('child_added', this.childAdded, this.errorHandler, this);
+        this.query.on('child_changed', this.childChanged, this.errorHandler, this);
+        this.query.on('child_removed', this.childRemoved, this.errorHandler, this);
+      } else {
+        this.query.on('value', this.valueUpdated, this.errorHandler, this);
+      }
     },
 
     closeQuery: function() {
       if (this.query) {
-        this.query.off('child_added', this.childAdded, this);
-        this.query.off('child_changed', this.childChanged, this);
-        this.query.off('child_moved', this.childMoved, this);
-        this.query.off('child_removed', this.childRemoved, this);
+        this.query.off();
       }
     },
 
-    //
-    // client-side data-observation
-    //
-    observeData: function() {
-      if (this.data instanceof Array) {
-        this.observer = new ArrayObserver(this.data);
-        this.observer.open(this.observeArray.bind(this));
-      } else if (this.data instanceof Object) {
-        this.observer = new ObjectObserver(this.data);
-        this.observer.open(this.observeObject.bind(this));
-      }
-    },
-
-    closeObserver: function() {
-      if (this.observer) {
-        this.observer.close();
-        this.observer = null;
-      }
-    },
-
-    dataChanged: function() {
-      if (this._data !== this.data) {
-        this._setData(this.data);
-        this.commit();
+    dataChanged: function(change) {
+      if (change.path) {
+        // this.ref.child(path.slice(5)).set(value);
+      } else {
+        if (this.valueLoading && !this.data) {
+          return;
+        }
+        if (!this._remoteValueChanged) {
+          this._updateData(this.data);
+          this.commit();
+        }
+        this._remoteValueChanged = false;
       }
     },
 
@@ -470,13 +479,6 @@ Example:
       this.childEvent('child-changed', snapshot);
     },
 
-    childMoved: function(snapshot) {
-      if (!this.valueLoading) {
-        this.modulateData('updateData', snapshot);
-      }
-      this.childEvent('child-moved', snapshot);
-    },
-
     childRemoved: function(snapshot) {
       if (!this.valueLoading) {
         this.modulateData('removeData', snapshot);
@@ -505,29 +507,31 @@ Example:
       if (!this.data) {
         this.data = {};
       }
-      this.data[snapshot.key()] = snapshot.val();
+      this.setPathValue('data.' + snapshot.key(), snapshot.val());
     },
 
     removeData: function(snapshot) {
       var key = snapshot.key();
       if (this.data instanceof Array) {
         this.data.splice(key, 1);
-        if (this.data.length == 0) {
-          this._setData(null);
+        if (data.length == 0) {
+          this._updateData(null);
         }
       } else if (this.data) {
         delete this.data[key];
+        this.notifyPath('data.' + key, undefined);
         if (Object.keys(this.data).length === 0) {
-          this._setData(null);
+          this._updateData(null);
         }
       }
     },
 
     dataChange: function() {
-      //this.job('change', function() {
-        this.keys = this.data ? Object.keys(this.data) : [];
-        this.fire('data-change');
-      //});
+      this.debounce('data-change', function() {
+        if (this.data) {
+          this.keys = this.data instanceof Object ? Object.keys(this.data) : [];
+        }
+      }, 0);
     },
 
     //
