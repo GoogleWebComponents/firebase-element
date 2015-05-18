@@ -7,8 +7,9 @@ The complete set of contributors may be found at http://polymer.github.io/CONTRI
 Code distributed by Google as part of the polymer project is also
 subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
 -->
-<link rel="import" href="firebase.html">
+
 <link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="firebase.html">
 
 <!--
 Element wrapper for the Firebase Web API (http://firebase.com).
@@ -19,233 +20,32 @@ Element wrapper for the Firebase Web API (http://firebase.com).
 
     <h3>My Firebase Data</h3>
 
-    <template repeat="{{key in keys}}">
-      <p>{{key}}: {{data[key]}}</p>
+    <template repeat="[[keys]]" as="key">
+      <p>{{printValue(data, key)}}</p>
     </template>
 
-## Data Persistence
-
-- changes that occur on the remote data are automatically reflected back into
-  the client-side data.
-- assignments to the `data` property, or modifications to `data`'s **own** properties, are
-  automatically persisted back to the Firebase store.
-- changes to **sub-properties** of `data` are not generally observable and are **not**
-  automatically persisted.
-- properties bound to the `data` property work just like `data` itself (all Polymer
-  bindings are like this).
-
-Examples:
-
-    // assume `this.data` is bound to the firebase-element data as shown above
-
-    resetData: function() {
-      // setting the data object directly will automatically also
-      // set the firebase location
-      this.data = {
-        name: 'anonymous',
-        info: 'none',
-        more: {
-          color: "yellow"
-        }
-      };
-    },
-
-    updateInfo: function(info) {
-      // setting top-level properties of the data object
-      // will automatically update the database
-      // this works via binding also
-      this.data.info = info;
-    },
-
-    updateColor: function(color) {
-      // changes to deep properties of the data object
-      // are not observed automatically, and must be
-      // commited to update the database
-      this.data.more.color = color;
-      // in this case, we use `commitProperty` to commit
-      // the top-level property that has deep changes
-      this.$.base.commitProperty('more');
-    }
-
-## Observing Changes
-
-Whenever `firebase-element` detects a change in data, from either client or server side, it
-bubbles a `data-change` event. `data-change` events are frequency-limited (throttled).
-
-Changes in data objects are also observable directly, but you must observe relevant properties
-directly. Changes in sub-properties are not automatically observed, following normal Polymer rules.
-
-Examples:
-
-    observe: {
-      // dataChanged only called if data is pointed at a new object
-      // changes to data's _properties or sub-properites are not observed_
-      data: 'dataChanged',
-      // dataNameChanged called if `data.name` changes
-      'data.name': 'dataNameChanged'
-    }
-
-## Arrays and Objects
-
-Firebase stores all data as Objects, even Arrays are stored as objects with numerical keys.
-As a convenience, the Firebase Web API automatically converts Array-like Objects into Arrays
-for use JavaScript.
-
-Arrays are generally inconvenient for large data-storage. For example, if you delete an
-element from an array, all the subsequent elements need their indices (keys) updated.
-
-To support lists of data without using Arrays, Firebase supports a `push` method which
-adds an entry to an Object using a string key instead of an index.
-
-    addEntry: function(value) {
-      this.$.base.push({foo: value});
-    }
-
-## Child Events
-
-Firebase supports notifications when properties on `data` are removed, added, or modified.
-Any of these changes will cause firebase-element to fire `data-change` method as described
-above. However, you can also listen for discrete child events, by setting `childEvents`
-property to true. The events are `child-added`, `child-moved` `child-removed`, and `child-changed`. Each
-`event` object has a `detail` property with `name` and `value` properties identifying the
-modified item.
-
-Example:
-
-    <firebase-element childEvents on-child-added="{{childAdded}}" ...>
-    ...
-    childAdded: function(event) {
-      console.log('added ', event.detail.name, ':', event.detail.value);
-    }
-
-@class firebase-element
-@blurb Element wrapper for the Firebase Web API (http://firebase.com).
-@status alpha
-@snap snap.png
+  - changes that occur on the remote data are automatically reflected back into
+    the client-side data.
+  - assignments to the `data` property, or modifications to `data`'s
+    **observed** subtree properties, are automatically persisted back to the
+    Firebase store.
 -->
 
 <script>
   Polymer({
     is: 'firebase-element',
 
-    /**
-     * Fired when properties on `data` are added, removed, or modified.
-     *
-     * @event data-change
-     */
-
-    /**
-     * Fired when the remote location has been read, whether or not data
-     * has been returned.
-     *
-     * @event data-ready
-     */
-
-    /**
-     * Fired when an error occurs on an interaction with Firebase.  The
-     * `details.error` property contains the `Error` object provided by
-     * the Firebase API.
-     *
-     * @event error
-     */
-
     properties: {
 
       /**
-       * Firebase location mapped to `data`.
-       */
-      location: {
-        type: String,
-        value: '',
-        reflectToAttribute: true,
-        observer: 'locationChanged'
-      },
-
-      /**
-       * Firebase `ref` object corresponding to `location`.
+       * Firebase Query object corresponding to `location`.
        */
       ref: {
         type: Object,
-        value: null
-      },
-
-      /**
-       * Restricts the number of records reflected on the client.
-       * This method is deprecated. Use limitToFirst() and limitToLast() instead.
-       */
-      limit: {
-        type: Number,
-        value: 0
-      },
-
-      /**
-       * Specify a maximum number of records reflected on the client limited to the first certain number of children.
-       */
-      limitToFirst: {
-        type: Number,
-        value: 0
-      },
-
-      /**
-       * Specify a maximum number of records reflected on the client limited to the last certain number of children.
-       * @attribute limitToLast
-       * @type Number
-       */
-      limitToLast: {
-        type: Number,
-        value: 0
-      },
-
-      /**
-       * Specify an start record for the set of records reflected on the client.
-       */
-      start: {
-        value: null
-      },
-
-      /**
-       * Specify an ending record for the set of records reflected on the client.
-       */
-      end: {
-        value: null
-      },
-
-      /**
-       * Specify a child key to order the set of records reflected on the client.
-       */
-      orderByChild: {
-        value: null
-      },
-
-      /**
-       * Specify to order by key the set of records reflected on the client.
-       */
-      orderByKey: {
-        type: Boolean,
-        value: false
-      },
-
-      /**
-       * Specify to order by priority the set of records reflected on the client.
-       */
-      orderByPriority: {
-        type: Boolean,
-        value: false
-      },
-
-      /**
-       * Specify to order by value the set of records reflected on the client.
-       */
-      orderByValue: {
-        type: Boolean,
-        value: false
-      },
-
-      /**
-       * Specify to create a query which includes children which match the specified value. The argument type depends on which orderBy*() function was used in this query. Specify a value that matches the orderBy*() type.
-       */
-      equalTo: {
-        value: null
+        readOnly: true,
+        notify: true,
+        observer: '_onRefChanged',
+        reflectToAttribute: true
       },
 
       /**
@@ -257,18 +57,105 @@ Example:
       },
 
       /**
-       * All keys in data (array of names, if you think of data as a set of name/value pairs).
+       * All keys in data (array of names, if you think of data as a set of
+       * name/value pairs).
        */
       keys: {
-        type: Array
+        type: Array,
+        readOnly: true,
+        notify: true
       },
 
       /**
-       * If true, will fire `child-added`,`child-moved` `child-removed`, `child-changed` events.
+       * Firebase location mapped to `data`.
        */
-      childEvents: {
+      location: {
+        type: String,
+        observer: '_updateRef',
+        reflectToAttribute: true
+      },
+
+      /**
+       * Specify a child key to order the set of records reflected on the
+       * client.
+       */
+      orderByChild: {
+        type: String,
+        value: '',
+        observer: '_updateRef',
+        reflectToAttribute: true
+      },
+
+      /**
+       * Specify to order by key the set of records reflected on the client.
+       */
+      orderByKey: {
         type: Boolean,
-        value: false
+        value: false,
+        observer: '_updateRef',
+        reflectToAttribute: true
+      },
+
+      /**
+       * Specify to order by value the set of records reflected on the client.
+       */
+      orderByValue: {
+        type: Boolean,
+        value: false,
+        observer: '_updateRef',
+        reflectToAttribute: true
+      },
+
+      /**
+       * Specify to order by priority the set of records reflected on the
+       * client.
+       */
+      orderByPriority: {
+        type: Boolean,
+        value: false,
+        observer: '_updateRef',
+        reflectToAttribute: true
+      },
+
+      /**
+       * Specify a maximum number of records reflected on the client limited to
+       * the first certain number of children.
+       */
+      limitToFirst: {
+        type: Number,
+        observer: '_updateRef',
+        reflectToAttribute: true
+      },
+
+      /**
+       * Specify a maximum number of records reflected on the client limited to
+       * the last certain number of children.
+       */
+      limitToLast: {
+        type: Number,
+        observer: '_updateRef',
+        reflectToAttribute: true
+      },
+
+      /**
+       * Specify an start record for the set of records reflected on the client.
+       */
+      startAt: {
+        type: String,
+        observer: '_updateRef',
+        reflectToAttribute: true
+      },
+
+      /**
+       * Specify to create a query which includes children which match the
+       * specified value. The argument type depends on which orderBy*() function
+       * was used in this query. Specify a value that matches the orderBy*()
+       * type.
+       */
+      equalTo: {
+        type: String,
+        observer: '_updateRef',
+        reflectToAttribute: true
       },
 
       /**
@@ -279,15 +166,6 @@ Example:
       },
 
       /**
-       * Reflects whether the data at this locaation as been read at least once
-       */
-      dataReady: {
-        type: Boolean,
-        readOnly: true,
-        value: false
-      },
-
-      /**
        * If true, will log various occurances to the console api.
        */
       log: {
@@ -295,307 +173,182 @@ Example:
         value: false
       },
 
-      query: {
-        type: Object
+      _orderByMethodName: {
+        computed: '_computeOrderByMethodName(orderByChild, orderByKey, orderByValue, orderByPriority)'
+      },
+
+      _orderByTypeCast: {
+        computed: '_computeOrderByTypeCast(orderByChild, orderByKey, orderByValue, orderByPriority)'
+      },
+
+      _startAt: {
+        computed: '_computeStartAt(startAt, _orderByTypeCast)'
+      },
+
+      _equalTo: {
+        computed: '_computeEqualTo(equalTo, _orderByTypeCast)'
       }
     },
 
     observers: [
-      'requery(ref, limit, start, end, limitToFirst, limitToLast, equalTo)',
-      'dataChanged(data.*)'
+      '_updateData(data.*)'
     ],
 
-    locationChanged: function() {
-      // shut-down previous observers (if any)
-      this.closeQuery();
-      // connect to db
-      if (this.location) {
-        this.ref = new Firebase(this.location);
-        this.valueLoading = true;
-        this.debouncedRequery();
-      } else {
-        this.ref = null;
-        this.data = null;
-      }
+    reset: function() {
+      this._updateRef();
     },
 
-    debouncedRequery: function() {
-      this.debounce('requery', this.requery);
-    },
+    _updateRef: function() {
+      var ref;
 
-    requery: function() {
-      // shut-down previous observers (if any)
-      this.closeQuery();
-      this.closeObserver();
-      // construct new query
-      var query = this.ref;
-      if (query) {
-       if (this.start) {
-          query = query.startAt(this.start);
-        }
-        if (this.end) {
-          query = query.endAt(this.end);
-        }
-        if (this.limit > 0) {
-          console.log('limit method is deprecated as firebase 2.0.0. Use limitToFirst() and limitToLast() instead.');
-          query = query.limit(this.limit);
-        }
-        if (this.limitToFirst > 0) {
-          query = query.limitToFirst(this.limitToFirst);
-        }
-        if (this.limitToLast > 0) {
-          query = query.limitToLast(this.limitToLast);
-        }
-        if (this.orderByChild) {
-          query = query.orderByChild(this.orderByChild);
-        }
-        if (this.orderByKey) {
-          query = query.orderByKey();
-        }
-        if (this.orderByPriority) {
-          query = query.orderByPriority();
-        }
-        if (this.orderByValue) {
-          query = query.orderByValue();
-        }
-        if (this.equalTo) {
-          query = query.equalTo(this.equalTo);
-        }
-
-        this.query = query;
-        this.queryChanged();
-      }
-    },
-
-    queryChanged: function() {
-      // initialize
-      this._updateData(null);
-      // data acquisition
-      this.dataReady = false;
-      this.valueLoading = true;
-      this.query.once('value', this.valueLoaded, this.errorHandler, this);
-    },
-
-    valueLoaded: function(snapshot) {
-      this.valueLoading = false;
-      if (this.ref.key() !== snapshot.key()) {
-        this.log && console.warn('squelching stale response [%s]', snapshot.key());
+      if (!this.location) {
         return;
       }
-      this.log && console.log('acquired value ' + this.location);
-      this.dataReady = true;
-      this._remoteValueChanged = true;
-      this._updateData(snapshot.val());
-      if (this.data) {
-        this.dataChange();
-      }
-      this.observeQuery();
-    },
 
-    valueUpdated: function(snapshot) {
-      this._updateData(snapshot.val());
-      if (this.data) {
-        this.dataChange();
-      }
-    },
+      ref = new Firebase(this.location);
 
-    _updateData: function(data) {
-      this._lastData = data;
-      this.data = data;
-    },
-
-    //
-    // server-side data-observation
-    //
-    observeQuery: function() {
-      // server side dynamics
-      if (this.data instanceof Object || this.data instanceof Array) {
-        this.query.on('child_added', this.childAdded, this.errorHandler, this);
-        this.query.on('child_changed', this.childChanged, this.errorHandler, this);
-        this.query.on('child_removed', this.childRemoved, this.errorHandler, this);
-      } else {
-        this.query.on('value', this.valueUpdated, this.errorHandler, this);
-      }
-    },
-
-    closeQuery: function() {
-      if (this.query) {
-        this.query.off();
-      }
-    },
-
-    dataChanged: function(change) {
-      if (change.path) {
-        // this.ref.child(path.slice(5)).set(value);
-      } else {
-        if (this.valueLoading && !this.data) {
-          return;
-        }
-        if (!this._remoteValueChanged) {
-          this._updateData(this.data);
-          this.commit();
-        }
-        this._remoteValueChanged = false;
-      }
-    },
-
-    priorityChanged: function() {
-      if (this.ref && (this.priority != null)) {
-        this.ref.setPriority(this.priority, this.errorHandler);
-      }
-    },
-
-    discardObservations: function() {
-      if (this.observer) {
-        this.observer.discardChanges();
-      }
-    },
-
-    deliverObservations: function() {
-      if (this.observer) {
-        this.observer.deliver();
-      }
-    },
-
-    //
-    // server-side effects
-    //
-    childAdded: function(snapshot) {
-      if (this.data) {
-        // ignore initial adds, we'll take the 'value' instead
-        this.modulateData('updateData', snapshot);
-      } else if (!this.valueLoading) {
-        // if children are added to a previously null location, grab the whole value in one go
-        this.valueLoading = true;
-        this.query.once('value', this.valueLoaded, this);
-      }
-      this.childEvent('child-added', snapshot);
-    },
-
-    childChanged: function(snapshot) {
-      if (!this.valueLoading) {
-        this.modulateData('updateData', snapshot);
-      }
-      this.childEvent('child-changed', snapshot);
-    },
-
-    childRemoved: function(snapshot) {
-      if (!this.valueLoading) {
-        this.modulateData('removeData', snapshot);
-      }
-      this.childEvent('child-removed', snapshot);
-    },
-
-    childEvent: function(kind, snapshot) {
-      this.log && console.log(kind, snapshot.key());
-      if (this.childEvents) {
-        this.fire(kind, {name: snapshot.key(), value: snapshot.val()});
-      }
-    },
-
-    modulateData: function(operation, snapshot) {
-      // handle any pending observations
-      this.deliverObservations();
-      this[operation](snapshot);
-      this.dataChange();
-      // discard any observations so we don't send this value back to the
-      // server, it may already be stale from the server's perspective
-      this.discardObservations();
-    },
-
-    updateData: function(snapshot) {
-      if (!this.data) {
-        this.data = {};
-      }
-      this.setPathValue('data.' + snapshot.key(), snapshot.val());
-    },
-
-    removeData: function(snapshot) {
-      var key = snapshot.key();
-      if (this.data instanceof Array) {
-        this.data.splice(key, 1);
-        if (data.length == 0) {
-          this._updateData(null);
-        }
-      } else if (this.data) {
-        delete this.data[key];
-        this.notifyPath('data.' + key, undefined);
-        if (Object.keys(this.data).length === 0) {
-          this._updateData(null);
-        }
-      }
-    },
-
-    dataChange: function() {
-      this.debounce('data-change', function() {
-        if (this.data) {
-          this.keys = this.data instanceof Object ? Object.keys(this.data) : [];
-        }
-      }, 0);
-    },
-
-    //
-    // client-side effects
-    //
-    observeArray: function(splices) {
-      //console.warn('observeArray');
-      // TODO(sjmiles): arrays are nasty because simple insertions/deletions
-      // cause changes to ripple through keys
-      this.commit();
-    },
-
-    observeObject: function(added, removed, changed, getOldValueFn) {
-      // client-side dynamics
-      var ctrlr = this;
-      Object.keys(added).forEach(function(property) {
-        ctrlr.commitProperty(property);
-      });
-      Object.keys(removed).forEach(function(property) {
-        ctrlr.remove(property);
-      });
-      Object.keys(changed).forEach(function(property) {
-        ctrlr.commitProperty(property);
-      });
-    },
-
-    // api for manual commits
-    commitProperty: function(key) {
-      this.log && console.log('commitProperty ' + key);
-      if (this.ref) {
-        this.ref.child(key).set(this.data[key], this.errorHandler);
-      }
-    },
-
-    remove: function(key) {
-      this.ref.child(key).remove(this.errorHandler);
-    },
-
-    commit: function() {
-      this.log && console.log('commit');
-      if (this.ref) {
-        if (this.priority != null) {
-          this.ref.setWithPriority(this.data || {}, this.priority, this.errorHandler);
+      if (this.orderByMethodName) {
+        if (this.orderByMethodName === 'orderByChild') {
+          ref = ref[this.orderByMethodName](this.orderByChild);
         } else {
-          this.ref.set(this.data || {}, this.errorHandler);
+          ref = ref[this.orderByMethodName]();
         }
       }
-    },
 
-    push: function(item) {
-      var neo;
-      if (this.data instanceof Array) {
-        this.commitProperty(this.data.push(item)-1);
-      } else {
-        neo = this.ref.push(item, this.errorHandler);
+      if (this.startAt !== undefined) {
+        ref = ref.startAt(this.startAt);
       }
-      this.dataChange();
-      return neo;
+
+      if (this.equalTo !== undefined) {
+        ref = ref.equalTo(this.equalTo);
+      }
+
+      if (this.limitToLast !== undefined) {
+        ref = ref.limitToLast(this.limitToLast);
+      }
+
+      if (this.limitToFirst !== undefined) {
+        ref = ref.limitToFirst(this.limitToFirst);
+      }
+
+      this._setRef(ref);
     },
 
-    errorHandler: function(error) {
-      if (error) {
-        this.fire('error', {error: error});
+    _onRefChanged: function(ref, oldRef) {
+      if (oldRef) {
+        this._stopListeningTo(oldRef);
+      }
+
+      this._listenTo(ref);
+    },
+
+    _listenTo: function(ref) {
+      ref.on('value', this._onRefValue, this._onRefCancel, this);
+      ref.on('child_added', this._onRefChildAdded, this._onRefCancel, this);
+      ref.on('child_removed', this._onRefChildRemoved, this._onRefCancel, this);
+      ref.on('child_changed', this._onRefChildChanged, this._onRefCancel, this);
+    },
+
+    _stopListening: function(ref) {
+      ref.off('value', this._onRefValue, this._onRefCancel, this);
+      ref.off('child_added', this._onRefChildAdded, this._onRefCancel, this);
+      ref.off('child_removed', this._onRefChildRemoved, this._onRefCancel, this);
+      ref.off('child_changed', this._onRefChildChanged, this._onRefCancel, this);
+    },
+
+    _onRefValue: function(snapshot) {
+      this._log('Firebase Event: "value"', snapshot.val());
+      this.set('data', snapshot.val());
+      this.fire('value', snapshot, { bubbles: false });
+    },
+
+    _onRefChildAdded: function(childSnapshot) {
+      this._log('Firebase Event: "child_added"', childSnapshot.val());
+      this.fire('child-added', childSnapshot, { bubbles: false });
+    },
+
+    _onRefChildRemoved: function(oldChildSnapshot) {
+      this._log('Firebase Event: "child_removed"', oldChildSnapshot.val());
+      this.fire('child-removed', oldChildSnapshot, { bubbles: false });
+    },
+
+    _onRefChildChanged: function(childSnapshot) {
+      this._log('Firebase Event: "child_changed"', childSnapshot.val());
+      this.fire('child-changed', childSnapshot, { bubbles: false });
+    },
+
+    _onRefCancel: function(error) {
+      this._error('Firebase Error', error);
+      this._log('Firebase subscription cancelled; disposing of query.');
+
+      if (this.ref) {
+        this._stopListeningTo(this.ref);
+        this._setRef(undefined);
+      }
+    },
+
+    _updateData: function(change) {
+      this.debounce('update-data', function() {
+        this._log('Updating remote data with local changes.');
+
+        if (this.priority != null) {
+          this.ref.setWithPriority(this.data, this.priority);
+        } else {
+          this.ref.set(this.data);
+        }
+
+        this._setKeys(this.data ? Object.keys(this.data) : []);
+      });
+    },
+
+    _computeOrderByMethodName: function(orderByChild, orderByKey, orderByValue, orderByPriority) {
+      if (orderByChild) {
+        return 'orderByChild';
+      }
+
+      if (orderByKey) {
+        return 'orderByKey';
+      }
+
+      if (orderByValue) {
+        return 'orderByValue';
+      }
+
+      if (orderByPriority) {
+        return 'orderByPriority';
+      }
+
+      return null;
+    },
+
+    _computeOrderByTypeCast: function(orderByChild, orderByKey, orderByValue, orderByPriority) {
+      if (orderByKey) {
+        return String;
+      }
+
+      return function(value) {
+        return value;
+      }
+    },
+
+    _computeStartAt: function(startAt, _orderByTypeCast) {
+      return _orderByTypeCast(startAt);
+    },
+
+    _computeEqualTo: function(equalTo, _orderByTypeCast) {
+      return _orderByTypeCast(equalTo);
+    },
+
+    _log: function() {
+      if (this.log) {
+        console.log.apply(console, arguments);
+      }
+    },
+
+    _error: function() {
+      if (this.log) {
+        console.error.apply(console, arguments);
       }
     }
-  });
+  })
 </script>
