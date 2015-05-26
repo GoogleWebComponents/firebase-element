@@ -10,17 +10,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 -->
 <html>
 <head>
-
-  <title>firebase-element</title>
-
-  <script src="../../webcomponentsjs/webcomponents-lite.js"></script>
-
-  <link rel="import" href="x-firebase.html">
-
+  <meta charset="utf-8">
+  <script src="../../webcomponentsjs/webcomponents.js"></script>
+  <script src="../../web-component-tester/browser.js"></script>
 </head>
 <body>
-
-  <x-firebase></x-firebase>
-
+  <script>
+    WCT.loadSuites([
+      'firebase-document.html',
+      'firebase-collection.html'
+    ]);
+  </script>
 </body>
 </html>

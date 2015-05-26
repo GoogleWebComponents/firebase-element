@@ -12,15 +12,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
 <!--
 Element wrapper for the Firebase authentication API (https://www.firebase.com/docs/web/guide/user-auth.html).
-@class firebase-login
-@blurb Element wrapper for the Firebase Simple Login API (https://www.firebase.com/docs/web/guide/user-auth.html).
-@status alpha
-@snap snap.png
 -->
 
 <script>
   Polymer({
-    is: 'firebase-login',
+    is: 'firebase-auth',
 
     properties: {
       /**
@@ -29,7 +25,7 @@ Element wrapper for the Firebase authentication API (https://www.firebase.com/do
       location: {
         type: String,
         reflectToAttribute: true,
-        observer: 'locationChanged'
+        observer: '_locationChanged'
       },
 
       /**
@@ -58,7 +54,8 @@ Element wrapper for the Firebase authentication API (https://www.firebase.com/do
        */
       autoLogin: {
         type: Boolean,
-        value: false
+        value: false,
+        reflectToAttribute: true
       },
 
       /**
@@ -66,8 +63,20 @@ Element wrapper for the Firebase authentication API (https://www.firebase.com/do
        */
       statusKnown: {
         type: Boolean,
+        value: false,
+        notify: true,
         readOnly: true,
-        notify: true
+        reflectToAttribute: true
+      },
+
+      /**
+       * When true, authentication will try to redirect instead of using a
+       * popup if possible.
+       */
+      redirect: {
+        type: Boolean,
+        value: false,
+        reflectToAttribute: true
       },
 
       /**
@@ -85,6 +94,15 @@ Element wrapper for the Firebase authentication API (https://www.firebase.com/do
         type: Object
       },
 
+      /**
+       * A pointer to the Firebase instance being used by the firebase-auth element.
+       */
+      ref: {
+        type: Object,
+        readOnly: true,
+        notify: true
+      },
+
       _boundAuthHandler: {
         value: function() {
           return this._authHandler.bind(this);
@@ -95,33 +113,32 @@ Element wrapper for the Firebase authentication API (https://www.firebase.com/do
         value: function() {
           return this._onlineHandler.bind(this);
         }
+      },
+
+      _queuedLogin: {
+        type: Object
       }
     },
 
     attached: function() {
       window.addEventListener('online', this._boundOnlineHandler);
-      if (this.ref) {
-        this.locationChanged();
-      }
     },
 
     detached: function() {
-      window.removeEventListener(this._boundOnlineHandler);
+      window.removeEventListener('online', this._boundOnlineHandler);
       this.ref.offAuth(this._boundAuthHandler);
     },
 
-    locationChanged: function() {
-      if (this.location != this._location) {
-        if (this._location) {
-          this.ref.offAuth(this._boundAuthHandler);
-        }
+    _locationChanged: function(location) {
+      if (this.ref) {
+        this.ref.offAuth(this._boundAuthHandler);
       }
-      this._location = this.location;
-      if (this._location) {
-        this.ref = new Firebase(this.location);
+
+      if (location) {
+        this._setRef(new Firebase(location));
         this.ref.onAuth(this._boundAuthHandler);
       } else {
-        this.ref = null;
+        this._setRef(null)
       }
     },
 
@@ -142,15 +159,19 @@ Element wrapper for the Firebase authentication API (https://www.firebase.com/do
         this.fire('login', {user: user});
       } else {
         this._setUser(null);
+
         if (this.statusKnown) {
+          this._setStatusKnown(false);
           this.fire('logout');
         }
-        if (this.queuedLogin) {
-          this.login(this.queuedLogin.params, this.queuedLogin.options);
-          this.queuedLogin = null;
+
+        if (this._queuedLogin) {
+          this.login(this._queuedLogin.params, this._queuedLogin.options);
+          this._queuedLogin = null;
         } else if (!this.statusKnown && this.autoLogin) {
           this.login();
         }
+
         this._setStatusKnown(true);
       }
     },
@@ -177,7 +198,7 @@ Element wrapper for the Firebase authentication API (https://www.firebase.com/do
      */
     login: function(params, options) {
       if (navigator.onLine === false) {
-        this.queuedLogin = {params: params, options: options};
+        this._queuedLogin = {params: params, options: options};
       } else {
         params = params || (this.params && JSON.parse(this.params)) || undefined;
         options = options || (this.options && JSON.parse(this.options)) || undefined;
