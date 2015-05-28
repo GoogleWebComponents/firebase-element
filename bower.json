@@ -2,6 +2,7 @@
   "name": "firebase-element",
   "version": "1.0.0",
   "private": true,
+  "main": "firebase-collection.html",
   "dependencies": {
     "polymer": "polymer/polymer#^1.0.0",
     "firebase": "^2.2.0"
