@@ -423,6 +423,7 @@ manipulation of the collection without direct knowledge of Firebase key values.
       this._applyRemoteDataChange(function() {
         var value = this._valueFromSnapshot(event.detail.childSnapshot);
         var oldValue = this._valueMap[value.__firebaseKey__];
+        var index = this.data.indexOf(this._valueMap[value.__firebaseKey__]);
 
         if (!oldValue) {
           this._error('Received firebase-child-changed event for unknown child "' + value.__firebaseKey__ + '"');
@@ -431,7 +432,7 @@ manipulation of the collection without direct knowledge of Firebase key values.
 
         this._valueMap[oldValue.__firebaseKey__] = null;
         this._valueMap[value.__firebaseKey__] = value;
-        this.splice('data' + this.data.indexOf(oldValue), 1, value);
+        this.splice('data', index, 1, value);
       });
     },
 
