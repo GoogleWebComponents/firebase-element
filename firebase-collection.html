@@ -270,15 +270,15 @@ manipulation of the collection without direct knowledge of Firebase key values.
 
     _applyLocalDataChanges: function(change) {
       var pathParts = change.path.split('.');
-      var index;
+      var key;
       var value;
 
       if (pathParts.length < 2 || pathParts[1] === 'splices') {
         return;
       }
 
-      index = parseInt(pathParts[1], 10);
-      value = this.data[index];
+      key = pathParts[1];
+      value = Polymer.Collection.get(change.base).getItem(key);
       this.query.ref().child(value.__firebaseKey__).set(value);
     },
 
