@@ -65,7 +65,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   </test-fixture>
 
   <script>
-    suite('<firebase-document>', function() {
+    suite('<firebase-collection>', function() {
       var firebase;
 
       suite('basic usage', function() {
@@ -166,6 +166,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             done(e)
           });
         });
+
+        test('adds a new child based on local changes');
 
         test('updates the child key in place with the new value', function(done) {
           var childrenKeys = [];
