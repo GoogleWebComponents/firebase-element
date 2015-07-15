@@ -296,7 +296,12 @@ manipulation of the collection without direct knowledge of Firebase key values.
         var key;
         var value;
 
-        if (pathParts.length < 2 || pathParts[1] === 'splices') {
+        if (pathParts.length < 2 || pathParts[1] === 'length') {
+          return;
+        }
+
+        if (pathParts[1] === 'splices') {
+          this._applySplicesToRemoteData(change.value.indexSplices);
           return;
         }
 
@@ -310,6 +315,23 @@ manipulation of the collection without direct knowledge of Firebase key values.
         this.query.ref().child(firebaseKey).set(value);
 
         value.__firebaseKey__ = firebaseKey;
+      },
+
+      _applySplicesToRemoteData: function(splices) {
+        this._log('splices', splices);
+        splices.forEach(function(splice) {
+          var added = splice.object.slice(splice.index, splice.index + splice.addedCount);
+
+          splice.removed.forEach(function(removed) {
+            this.remove(removed);
+          }, this);
+
+          this.data.splice(splice.index, splice.addedCount);
+
+          added.forEach(function(added) {
+            this.add(added);
+          }, this);
+        }, this);
       },
 
       _computeQuery: function(location, limitToFirst, limitToLast, orderByMethodName, startAt, endAt, equalTo) {
@@ -454,14 +476,19 @@ manipulation of the collection without direct knowledge of Firebase key values.
         this._applyRemoteDataChange(function() {
           var key = event.detail.oldChildSnapshot.key();
           var value = this._valueMap[key];
+          var index;
 
           if (!value) {
             this._error('Received firebase-child-removed event for unknown child "' + key + '"');
             return;
           }
 
+          index = this.data.indexOf(value);
           this._valueMap[key] = null;
-          this.splice('data', this.data.indexOf(value), 1);
+
+          if (index !== -1) {
+            this.splice('data', index, 1);
+          }
         });
       },
 
