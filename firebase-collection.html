@@ -375,9 +375,9 @@ manipulation of the collection without direct knowledge of Firebase key values.
       },
 
       _queryChanged: function() {
-        Polymer.FirebaseQueryBehavior._queryChanged.apply(this, arguments);
         this._valueMap = {};
         this._setData([]);
+        Polymer.FirebaseQueryBehavior._queryChanged.apply(this, arguments);
       },
 
       _computeOrderByMethodName: function(orderByChild, orderByKey, orderByValue, orderByPriority) {
