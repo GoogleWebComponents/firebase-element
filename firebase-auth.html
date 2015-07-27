@@ -130,16 +130,21 @@ Element wrapper for the Firebase authentication API (https://www.firebase.com/do
     },
 
     _locationChanged: function(location) {
-      if (this.ref) {
-        this.ref.offAuth(this._boundAuthHandler);
-      }
+      // Note: we debounce here in case location changed as part of property
+      // initialization, so that we don't try to login before other properties
+      // are initialized.
+      this.debounce('locationChanged', function() {
+        if (this.ref) {
+          this.ref.offAuth(this._boundAuthHandler);
+        }
 
-      if (location) {
-        this._setRef(new Firebase(location));
-        this.ref.onAuth(this._boundAuthHandler);
-      } else {
-        this._setRef(null)
-      }
+        if (location) {
+          this._setRef(new Firebase(location));
+          this.ref.onAuth(this._boundAuthHandler);
+        } else {
+          this._setRef(null);
+        }
+      }, 1);
     },
 
     _loginHandler: function(error, user) {
@@ -197,11 +202,11 @@ Element wrapper for the Firebase authentication API (https://www.firebase.com/do
      * @param {string} options (optional)
      */
     login: function(params, options) {
-      if (navigator.onLine === false) {
+      if (!this.ref || navigator.onLine === false) {
         this._queuedLogin = {params: params, options: options};
       } else {
-        params = params || (this.params && JSON.parse(this.params)) || undefined;
-        options = options || (this.options && JSON.parse(this.options)) || undefined;
+        params = params || this.params || undefined;
+        options = options || this.options || undefined;
         switch(this.provider) {
           case 'password':
             this.ref.authWithPassword(params, this._loginHandler.bind(this), options);
