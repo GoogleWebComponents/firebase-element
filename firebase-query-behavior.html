@@ -144,7 +144,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     },
 
     _onQueryChildMoved: function(childSnapshot, previousChildName) {
-      this._log('Firebase Event: "child_changed"', childSnapshot, previousChildName);
+      this._log('Firebase Event: "child_moved"', childSnapshot, previousChildName);
       this.fire('firebase-child-moved', {
         childSnapshot: childSnapshot,
         previousChildName: previousChildName

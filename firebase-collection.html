@@ -230,7 +230,7 @@ manipulation of the collection without direct knowledge of Firebase key values.
         'firebase-child-added': '_onFirebaseChildAdded',
         'firebase-child-removed': '_onFirebaseChildRemoved',
         'firebase-child-changed': '_onFirebaseChildChanged',
-        'firebase-child-moved': '_onFirebaseChildChanged',
+        'firebase-child-moved': '_onFirebaseChildMoved',
       },
 
       /**
@@ -520,10 +520,10 @@ manipulation of the collection without direct knowledge of Firebase key values.
             return;
           }
 
-          previousValue = event.detail.previousChildName != null ?
+          previousChild = event.detail.previousChildName != null ?
             this._valueMap[event.detail.previousChildName] : null;
-          newIndex = previousValue != null ?
-            this.data.indexOf(previousValue) + 1 : 0;
+          newIndex = previousChild != null ?
+            this.data.indexOf(previousChild) + 1 : 0;
 
           this.splice('data', this.data.indexOf(value), 1);
           this.splice('data', newIndex, 0, value);
