@@ -208,7 +208,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           });
         });
 
-        test('adds a new child based on local changes');
+        // test('adds a new child based on local changes');
 
         test('updates the child key in place with the new value', function(done) {
           var childrenKeys = [];
@@ -294,6 +294,60 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
           key = localFirebase.add(data).key();
         });
+
+      });
+
+      suite('syncing collections', function() {
+        var localFirebase;
+        var remoteFirebase;
+
+        setup(function() {
+          firebase = fixture('SyncingCollections');
+          localFirebase = firebase[0];
+          remoteFirebase = firebase[1];
+          // Don't need to wait since these will already be ready
+          // due to the previous tests
+        });
+
+        test('adds item and syncs modifications', function(done) {
+          var timestamp = Date.now();
+          var remoteObj = {foo: timestamp};
+
+          waitForEvent(localFirebase, 'firebase-value').then(function() {
+            var localObj;
+            localFirebase.data.some(function(o) {
+              if (o.foo == timestamp) {
+                localObj = o;
+                return true;
+              }
+            });
+            expect(localObj).to.be.ok;
+            // Modify item
+            var idx = remoteFirebase.data.indexOf(remoteObj);
+            remoteFirebase.set(['data', idx, 'foo'], ++timestamp);
+            localObj = null;
+            localFirebase.data.some(function(o) {
+              if (o.foo == timestamp) {
+                localObj = o;
+                return true;
+              }
+            });
+            expect(localObj.foo).to.be.equal(timestamp);
+            // Remove item
+            remoteFirebase.splice('data', idx, 1);
+            var hasObj = localFirebase.data.some(function(o) {
+              return (o.foo == timestamp);
+            });
+            expect(hasObj).to.be.false;
+            done();
+          }).catch(function(e) {
+            done(e);
+          });
+
+          // Add item
+          remoteFirebase.push('data', remoteObj);
+        });
+
       });
     });
   </script>

@@ -248,7 +248,9 @@ manipulation of the collection without direct knowledge of Firebase key values.
 
         query = this.query.ref().push();
         query.set(data);
-        data.__firebaseKey__ = query.key();
+        if (typeof data == 'object') {
+          data.__firebaseKey__ = query.key();
+        }
 
         return query;
       },
