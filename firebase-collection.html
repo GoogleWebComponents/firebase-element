@@ -326,8 +326,6 @@ manipulation of the collection without direct knowledge of Firebase key values.
             this.remove(removed);
           }, this);
 
-          this.data.splice(splice.index, splice.addedCount);
-
           added.forEach(function(added) {
             this.add(added);
           }, this);

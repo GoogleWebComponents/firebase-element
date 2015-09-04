@@ -64,9 +64,50 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </template>
   </test-fixture>
 
+  <test-fixture id="BoundCollection">
+    <template>
+      <section>
+        <!-- TODO(cdata): Add support for elements like `dom-bind` at the root
+             of the template to `test-fixture`, so that we can remove this
+             wrapping `section`. -->
+        <template is="dom-bind">
+          <template is="dom-repeat" items="{{data}}">
+            <div>[[item.value]]</div>
+          </template>
+          <firebase-collection
+            location="https://fb-element-demo.firebaseio.com/test/empty"
+            data="{{data}}"
+            log>
+          </firebase-collection>
+        </template>
+      </section>
+    </template>
+  </test-fixture>
+
   <script>
     suite('<firebase-collection>', function() {
       var firebase;
+
+      suite('collection manipulation', function() {
+        var domBind;
+        var dom;
+
+        setup(function() {
+          dom = fixture('BoundCollection');
+          domBind = dom.querySelector('[is=dom-bind]');
+          firebase = dom.querySelector('firebase-collection');
+        });
+
+        test('added values reflect 1-to-1 in the DOM', function(done) {
+          waitForEvent(firebase, 'firebase-value').then(function() {
+            waitForEvent(firebase, 'firebase-child-added').then(function() {
+              expect(dom.querySelectorAll('div').length).to.be.equal(firebase.data.length);
+              done();
+            });
+            domBind.unshift('data', { value: 'blah' });
+          });
+        });
+      });
 
       suite('basic usage', function() {
         setup(function() {
