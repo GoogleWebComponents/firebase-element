@@ -248,6 +248,7 @@ manipulation of the collection without direct knowledge of Firebase key values.
 
         query = this.query.ref().push();
         query.set(data);
+        data.__firebaseKey__ = query.key();
 
         return query;
       },
