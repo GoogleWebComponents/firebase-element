@@ -102,6 +102,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           waitForEvent(firebase, 'firebase-value').then(function() {
             waitForEvent(firebase, 'firebase-child-added').then(function() {
               expect(dom.querySelectorAll('div').length).to.be.equal(firebase.data.length);
+              // NOTE(cdata): This line may seem innocuous but it is
+              // important for this test. It is possible for an exception to be
+              // thrown when a value is removed that hasn't been properly
+              // marked as part of the remote Firebase store:
+              domBind.shift('data');
               done();
             });
             domBind.unshift('data', { value: 'blah' });
@@ -176,6 +181,21 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             }).catch(function(e) {
               done(e);
             });
+          });
+
+          test('works for data bound changes', function(done) {
+            var intendedValue = firebase.data.length;
+            var index;
+
+            waitForEvent(firebase, 'firebase-child-added').then(function() {
+              var item = firebase.data[index];
+
+              expect(item).to.have.property('value');
+              expect(item.value).to.be.equal(intendedValue);
+              done();
+            });
+
+            index = firebase.push('data', intendedValue) - 1;
           });
 
           test('can be done with `add`', function(done) {

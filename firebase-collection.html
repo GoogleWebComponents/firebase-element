@@ -300,7 +300,7 @@ manipulation of the collection without direct knowledge of Firebase key values.
           return;
         }
 
-        if (pathParts[1] === 'splices') {
+        if (pathParts[1] === 'splices' && change.value.indexSplices != null) {
           this._applySplicesToRemoteData(change.value.indexSplices);
           return;
         }
