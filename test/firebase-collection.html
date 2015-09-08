@@ -101,13 +101,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         test('added values reflect 1-to-1 in the DOM', function(done) {
           waitForEvent(firebase, 'firebase-value').then(function() {
             waitForEvent(firebase, 'firebase-child-added').then(function() {
-              expect(dom.querySelectorAll('div').length).to.be.equal(firebase.data.length);
-              // NOTE(cdata): This line may seem innocuous but it is
-              // important for this test. It is possible for an exception to be
-              // thrown when a value is removed that hasn't been properly
-              // marked as part of the remote Firebase store:
-              domBind.shift('data');
-              done();
+              try {
+                expect(dom.querySelectorAll('div').length).to.be.equal(firebase.data.length);
+                // NOTE(cdata): This line may seem innocuous but it is
+                // important for this test. It is possible for an exception to be
+                // thrown when a value is removed that hasn't been properly
+                // marked as part of the remote Firebase store:
+                domBind.shift('data');
+                done();
+              } catch (e) {
+                done(e);
+              }
             });
             domBind.unshift('data', { value: 'blah' });
           });
@@ -190,9 +194,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             waitForEvent(firebase, 'firebase-child-added').then(function() {
               var item = firebase.data[index];
 
-              expect(item).to.have.property('value');
-              expect(item.value).to.be.equal(intendedValue);
-              done();
+              try {
+                expect(item).to.have.property('value');
+                expect(item.value).to.be.equal(intendedValue);
+                done();
+              } catch (e) {
+                done(e);
+              }
             });
 
             index = firebase.push('data', intendedValue) - 1;

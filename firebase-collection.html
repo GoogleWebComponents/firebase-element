@@ -261,7 +261,10 @@ manipulation of the collection without direct knowledge of Firebase key values.
        */
       remove: function(data) {
         if (data == null || data.__firebaseKey__ == null) {
-          this._error('Failed to remove unknown value:', data);
+          // NOTE(cdata): This might be better as an error message in the
+          // console, but `Polymer.Base._error` throws, which we don't want
+          // to happen in this case.
+          this._log('Refusing to remove unknown value:', data);
           return;
         }
 
@@ -325,6 +328,8 @@ manipulation of the collection without direct knowledge of Firebase key values.
           splice.removed.forEach(function(removed) {
             this.remove(removed);
           }, this);
+
+          this.splice('data', splice.index, splice.addedCount);
 
           added.forEach(function(added) {
             this.add(added);
