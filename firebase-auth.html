@@ -151,8 +151,6 @@ Element wrapper for the Firebase authentication API (https://www.firebase.com/do
       if (error) {
         // an error occurred while attempting login
         this.fire('error', error);
-      } else {
-        this._authHandler(user);
       }
     },
 
