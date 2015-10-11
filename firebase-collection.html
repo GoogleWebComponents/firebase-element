@@ -233,6 +233,11 @@ manipulation of the collection without direct knowledge of Firebase key values.
         'firebase-child-moved': '_onFirebaseChildMoved',
       },
 
+      created: function() {
+        this._pendingSplices = [];
+        this._lastLocallyAddedIndex = null;
+      },
+
       /**
        * Add an item to the document referenced at `location`. A key associated
        * with the item will be created by Firebase, and can be accessed via the
@@ -264,7 +269,7 @@ manipulation of the collection without direct knowledge of Firebase key values.
           // NOTE(cdata): This might be better as an error message in the
           // console, but `Polymer.Base._error` throws, which we don't want
           // to happen in this case.
-          this._log('Refusing to remove unknown value:', data);
+          this._warn('Refusing to remove unknown value:', data);
           return;
         }
 
@@ -290,51 +295,82 @@ manipulation of the collection without direct knowledge of Firebase key values.
        * located at `location`.
        */
       removeByKey: function(key) {
+        if (!this.query) {
+          this._error('Cannot remove items before query has been initialized.');
+          return;
+        }
+
         this.query.ref().child(key).remove();
       },
 
-      _applyLocalDataChanges: function(change) {
+      _localDataChanged: function(change) {
         var pathParts = change.path.split('.');
-        var firebaseKey;
-        var key;
-        var value;
 
+        // We don't care about self-changes, and we don't respond directly to
+        // length changes:
         if (pathParts.length < 2 || pathParts[1] === 'length') {
           return;
         }
 
+        // Handle splices via the adoption process. `indexSplices` is known to
+        // sometimes be null, so guard against that.
         if (pathParts[1] === 'splices' && change.value.indexSplices != null) {
-          this._applySplicesToRemoteData(change.value.indexSplices);
+          this._adoptSplices(change.value.indexSplices);
           return;
         }
 
-        key = pathParts[1];
-        value = Polymer.Collection.get(change.base).getItem(key);
+        // Otherwise, the change is happening to a sub-path of the array.
+        this._applySubPathChange(change);
+      },
 
-        // Temporarily remove the client-only `__firebaseKey__` property:
-        firebaseKey = value.__firebaseKey__;
+      _applySubPathChange: function(change) {
+        var key = change.path.split('.')[1];
+        var value = Polymer.Collection.get(change.base).getItem(key);
+        var firebaseKey = value.__firebaseKey__;
+
+        // We don't want to accidentally reflect `__firebaseKey__` in the
+        // remote data, so we remove it temporarily. `null` values will be
+        // discarded by Firebase, so `delete` is not necessary:
         value.__firebaseKey__ = null;
-
         this.query.ref().child(firebaseKey).set(value);
-
         value.__firebaseKey__ = firebaseKey;
       },
 
-      _applySplicesToRemoteData: function(splices) {
-        this._log('splices', splices);
-        splices.forEach(function(splice) {
-          var added = splice.object.slice(splice.index, splice.index + splice.addedCount);
+      _adoptSplices: function(splices) {
+        this._pendingSplices = this._pendingSplices.concat(splices);
 
-          splice.removed.forEach(function(removed) {
-            this.remove(removed);
+        // We can afford apply removals synchronously, so we do that first
+        // and save the `added` operations for the `debounce` below.
+        this._applyLocalDataChange(function() {
+          splices.forEach(function(splice) {
+            splice.removed.forEach(function(removed) {
+              this.remove(removed);
+            }, this);
           }, this);
+        });
 
-          this.splice('data', splice.index, splice.addedCount);
+        // We async until the next turn. The reason we want to do this is
+        // that splicing within a splice handler will break the data binding
+        // system in some places. This is referred to as the "re-entrancy"
+        // problem. See polymer/polymer#2491.
+        this.debounce('_adoptSplices', function() {
+          this._applyLocalDataChange(function() {
+            var splices = this._pendingSplices;
 
-          added.forEach(function(added) {
-            this.add(added);
-          }, this);
-        }, this);
+            this._pendingSplices = [];
+
+            splices.forEach(function(splice) {
+              var added = splice.object.slice(splice.index, splice.index + splice.addedCount);
+
+              added.forEach(function(added, index) {
+                this._lastLocallyAddedIndex = splice.index + index;
+                this.add(added);
+              }, this);
+            }, this);
+
+            this._lastLocallyAddedIndex = null;
+          });
+        });
       },
 
       _computeQuery: function(location, limitToFirst, limitToLast, orderByMethodName, startAt, endAt, equalTo) {
@@ -343,6 +379,8 @@ manipulation of the collection without direct knowledge of Firebase key values.
         if (!location) {
           return;
         }
+
+        this._log('Recomputing query.', arguments);
 
         query = new Firebase(location);
 
@@ -465,17 +503,56 @@ manipulation of the collection without direct knowledge of Firebase key values.
       _onFirebaseChildAdded: function(event) {
         this._applyRemoteDataChange(function() {
           var value = this._valueFromSnapshot(event.detail.childSnapshot);
+          var key = value.__firebaseKey__;
           var previousValueKey = event.detail.previousChildName;
           var index = previousValueKey != null ?
             this.data.indexOf(this._valueMap[previousValueKey]) + 1 : 0;
+          var lastLocallyAddedValue;
 
           this._valueMap[value.__firebaseKey__] = value;
 
-          this.splice('data', index, 0, value);
+          // NOTE(cdata): The rationale for this conditional dance around the
+          // last locally added index (since you will inevitably be wondering
+          // why we do it):
+          // There may be a "locally" added value which was spliced in. If
+          // there is, it may be in the "wrong" place in the array. This is
+          // due to the fact that Firebase may be applying a sort to the
+          // data, so we won't know the correct index for the locally added
+          // value until the `child_added` event is fired.
+          // Once we get the `child_added` event, we can check to see if the
+          // locally added value is in the right place. If it is, we just
+          // `set` it to the Firebase-provided value. If it is not, then
+          // we grab the original value, splice in the Firebase-provided
+          // value in the right place, and then (importantly: at the end)
+          // find the locally-added value again (since its index may have
+          // changed by splicing-in Firebase's value) and splice it out of the
+          // array.
+          if (this._lastLocallyAddedIndex === index) {
+            this.set(['data', index], value);
+          } else {
+            if (this._lastLocallyAddedIndex != null) {
+              lastLocallyAddedValue = this.data[this._lastLocallyAddedIndex];
+            }
+
+            this.splice('data', index, 0, value);
+
+            if (this._lastLocallyAddedIndex != null) {
+              this.splice('data', this.data.indexOf(lastLocallyAddedValue), 1);
+            }
+          }
         });
       },
 
       _onFirebaseChildRemoved: function(event) {
+        if (this._receivingLocalChanges) {
+          this._valueMap[event.detail.oldChildSnapshot.key()] = null;
+          // NOTE(cdata): If we are receiving local changes, that means that
+          // the splices have already been performed and items are already
+          // removed from the local data representation. No need to remove
+          // them again.
+          return;
+        }
+
         this._applyRemoteDataChange(function() {
           var key = event.detail.oldChildSnapshot.key();
           var value = this._valueMap[key];
