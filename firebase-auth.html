@@ -268,7 +268,8 @@ Element wrapper for the Firebase authentication API (https://www.firebase.com/do
     /**
      * Creates a "password provider"-based user account.
      *
-     * If the operation is successful, the `user-created` event is fired.
+     * If the operation is successful, the `user-created` event is fired, with `detail`
+     * containing the uid of the newly registered user.
      *
      * If the operation fails, the `error` event is fired, with `e.detail`
      * containing error information supplied from Firebase.
@@ -278,9 +279,9 @@ Element wrapper for the Firebase authentication API (https://www.firebase.com/do
      * @param {string} password
      */
     createUser: function(email, password) {
-        this.ref.createUser({email: email, password: password}, function(error) {
+        this.ref.createUser({email: email, password: password}, function(error, detail) {
           if (!error) {
-            this.fire('user-created');
+            this.fire('user-created', detail);
           } else {
             this.fire('error', error);
           }
