@@ -17,7 +17,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   <script src="../../test-fixture/test-fixture-mocha.js"></script>
 
   <link rel="import" href="../../polymer/polymer.html">
-  <link rel="import" href="../../promise-polyfill/promise-polyfill.html">
   <link rel="import" href="../../test-fixture/test-fixture.html">
   <link rel="import" href="test-helpers.html">
   <link rel="import" href="../firebase-collection.html">
@@ -25,42 +24,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <body>
   <test-fixture id="TrivialCollection">
     <template>
-      <firebase-collection
-        location="https://fb-element-demo.firebaseio.com/test/trivial"
-        log>
-      </firebase-collection>
-    </template>
-  </test-fixture>
-  <test-fixture id="PrimitiveCollection">
-    <template>
-      <firebase-collection
-        location="https://fb-element-demo.firebaseio.com/test/primitives"
-        order-by-value
-        log>
-      </firebase-collection>
-    </template>
-  </test-fixture>
-  <test-fixture id="ChangingChildren">
-    <template>
-      <firebase-collection
-        location="https://fb-element-demo.firebaseio.com/test/changing_children"
-        order-by-child="foo"
-        log>
-      </firebase-collection>
-    </template>
-  </test-fixture>
-
-  <test-fixture id="SyncingCollections">
-    <template>
-      <firebase-collection
-        location="https://fb-element-demo.firebaseio.com/test/syncing"
-        log>
-      </firebase-collection>
-      <firebase-collection
-        location="https://fb-element-demo.firebaseio.com/test/syncing"
-        order-by-child="foo"
-        log>
-      </firebase-collection>
+      <firebase-collection log></firebase-collection>
     </template>
   </test-fixture>
 
@@ -75,7 +39,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             <div>[[item.value]]</div>
           </template>
           <firebase-collection
-            location="https://fb-element-demo.firebaseio.com/test/empty"
             data="{{data}}"
             log>
           </firebase-collection>
@@ -85,217 +48,228 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   </test-fixture>
 
   <script>
-    suite('<firebase-collection>', function() {
+
+    suite('firebase-collection', function() {
       var firebase;
 
-      suite('collection manipulation', function() {
-        var domBind;
-        var dom;
-
-        setup(function() {
-          dom = fixture('BoundCollection');
-          domBind = dom.querySelector('[is=dom-bind]');
-          firebase = dom.querySelector('firebase-collection');
-        });
-
-        test('added values reflect 1-to-1 in the DOM', function(done) {
-          waitForEvent(firebase, 'firebase-value').then(function() {
-            waitForEvent(firebase, 'firebase-child-added').then(function() {
-              expect(dom.querySelectorAll('div').length).to.be.equal(firebase.data.length);
-              done();
-            });
-            domBind.unshift('data', { value: 'blah' });
-          });
-        });
+      teardown(function() {
+        if (firebase) {
+          removeFirebase(firebase);
+        }
       });
 
       suite('basic usage', function() {
+        var numberOfItems;
+
         setup(function() {
-          firebase = fixture('TrivialCollection');
+          numberOfItems = 3;
+          firebase = fixtureFirebase('TrivialCollection', arrayOfObjects(numberOfItems));
         });
 
-        teardown(function() {
-          firebase.disconnect();
+        test('exposes data as an array', function() {
+          expect(firebase.data).to.be.an('array');
+          expect(firebase.data.length).to.be.equal(numberOfItems);
         });
 
-        test('exposes data as an array', function(done) {
-          waitForEvent(firebase, 'firebase-child-added').then(function() {
-            expect(firebase.data).to.be.an('array');
-            done();
-          }).catch(function(e) {
-            done(e);
-          });
-        });
-
-        test('receives data from Firebase location', function(done) {
-          waitForEvent(firebase, 'data-changed').then(function() {
-            expect(firebase.data[0].value).to.be.equal(true);
-            done();
-          }).catch(function(e) {
-            done(e);
-          });
+        test('receives data from Firebase location', function() {
+          expect(firebase.data[0].value).to.be.a('number');
         });
       });
 
       suite('ordered primitives', function() {
+        var numberOfItems;
+
         setup(function() {
-          firebase = fixture('PrimitiveCollection');
+          numberOfItems = 5;
+          firebase = fixtureFirebase('TrivialCollection', arrayOfPrimitives(numberOfItems));
+          firebase.orderByValue = true;
         });
 
-        teardown(function() {
-          firebase.disconnect();
+        test('converts primitives into objects with a value key', function() {
+          expect(firebase.data[0]).to.be.an('object');
         });
 
-        test('converts primitives into objects with a value key', function(done) {
-          waitForEvent(firebase, 'firebase-child-added').then(function() {
-            expect(firebase.data[0]).to.be.an('object');
-            done();
-          }).catch(function(e) {
-            done(e);
-          });
-        });
+        test('orders primitives by value', function() {
+          var lastValue = -Infinity;
 
-        test('orders primitives by value', function(done) {
-          waitForEvent(firebase, 'firebase-value').then(function() {
-            var lastValue = -Infinity;
-            expect(firebase.data.length).to.be.greaterThan(0);
-            firebase.data.forEach(function(item) {
-              expect(item.value).to.not.be.lessThan(lastValue);
-              lastValue = item.value;
-            });
-            done();
-          }).catch(function(e) {
-            done(e);
-          });
-        });
+          expect(firebase.data.length).to.be.equal(numberOfItems);
 
-        suite('adding a value locally', function() {
-          setup(function(done) {
-            waitForEvent(firebase, 'firebase-value').then(function() {
-              done();
-            }).catch(function(e) {
-              done(e);
-            });
-          });
-
-          test('can be done with `add`', function(done) {
-            var length = firebase.data.length;
-            var newValue = firebase.data[firebase.data.length - 1].value + 1;
-            var key;
-
-            waitForEvent(firebase, 'firebase-child-added').then(function() {
-              expect(firebase.data.length).to.be.equal(length + 1);
-              expect(firebase.data[firebase.data.length - 1].value).to.be.equal(newValue);
-              done();
-            }).catch(function(e) {
-              done(e);
-            }).then(function() {
-              firebase.removeByKey(key);
-            });
-
-            key = firebase.add(newValue).key();
+          firebase.data.forEach(function(datum) {
+            expect(datum.value).to.not.be.lessThan(lastValue);
+            lastValue = datum.value;
           });
         });
       });
 
-      suite('a child changes', function() {
-        setup(function(done) {
-          firebase = fixture('ChangingChildren');
-          waitForEvent(firebase, 'firebase-value').then(function() {
-            done();
-          }).catch(function(e) {
-            done(e)
-          });
+      suite('removing a value locally', function() {
+        var numberOfItems;
+        setup(function() {
+          numberOfItems = 3;
+          firebase = fixtureFirebase('TrivialCollection', arrayOfObjects(numberOfItems));
         });
 
-        test('adds a new child based on local changes');
+        test('works for data-bound changes', function() {
+          firebase.splice('data', 0, 1);
+          expect(firebase.data.length).to.be.equal(numberOfItems - 1);
+        });
 
-        test('updates the child key in place with the new value', function(done) {
-          var childrenKeys = [];
+        test('can be done with `remove`', function() {
+          var objectToBeRemoved = firebase.data[0];
+          firebase.remove(objectToBeRemoved);
 
-          waitForEvent(firebase, 'firebase-value').then(function() {
-            var middleValue = firebase.getByKey(childrenKeys[1]);
-            var changes;
+          expect(firebase.data.length).to.be.equal(numberOfItems - 1);
+          expect(firebase.data.indexOf(objectToBeRemoved)).to.be.equal(-1);
+        });
+      });
 
-            expect(middleValue.foo).to.be.equal(1);
-            expect(middleValue.bar).to.be.equal(1);
+      suite('adding a value locally', function() {
+        setup(function() {
+          firebase = fixtureFirebase('TrivialCollection');
+        });
 
-            changes = waitForEvent(firebase, 'firebase-child-changed');
+        test('works for data-bound changes', function(done) {
+          var intendedValue = randomInt();
+          var index = firebase.push('data', intendedValue) - 1;
 
-            firebase.set('data.' + firebase.data.indexOf(middleValue) + '.bar', 2);
-
-            return changes;
-          }).then(function() {
-            var middleValue = firebase.getByKey(childrenKeys[1]);
-
-            expect(middleValue.foo).to.be.equal(1);
-            expect(middleValue.bar).to.be.equal(2);
-
+          // NOTE(cdata): See polymer/polymer#2491.
+          Polymer.Base.async(function() {
+            expect(firebase.data[index]).to.have.property('value');
+            expect(firebase.data[index].value).to.be.equal(intendedValue);
             done();
-          }).catch(function(e) {
-            done(e);
-          }).then(function() {
-            childrenKeys.forEach(function(key) {
-              firebase.removeByKey(key);
-            });
-          });
+          }, 1);
+        });
 
-          childrenKeys = [0, 1, 2].map(function(value, index) {
-            return firebase.add({
-              foo: value,
-              bar: index
-            }).key();
-          });
+        test('can be done with `add`', function(done) {
+          var object = randomObject();
+          var length = firebase.data.length;
+          var foundObject;
+
+          firebase.add(object);
+
+          // NOTE(cdata): See polymer/polymer#2491.
+          Polymer.Base.async(function() {
+            expect(firebase.data.length).to.be.equal(length + 1);
+
+            firebase.data.forEach(function(datum) {
+              if (datum.value === object.value) {
+                foundObject = datum;
+              }
+            });
+
+            expect(foundObject).to.be.okay;
+            expect(foundObject.value).to.be.equal(object.value);
+            done();
+          }, 1);
+        });
+      });
+
+      suite('a changing child', function() {
+        var numberOfItems;
+        var remoteFirebase;
+
+        setup(function() {
+          numberOfItems = 3;
+          firebase = fixtureFirebase('TrivialCollection', arrayOfObjects(numberOfItems));
+          remoteFirebase = new Firebase(firebase.location);
+        });
+
+        test('updates the child key in place with the new value', function() {
+          var datum = firebase.data[0];
+          var newValue = 99999;
+          var key = Polymer.Collection.get(firebase.data).getKey(datum);
+
+          firebase.set('data.' + key + '.value', newValue);
+
+          expect(firebase.data[0].value).to.be.equal(newValue);
         });
       });
 
       suite('syncing collections', function() {
-        var localFirebase;
+        var numberOfItems;
         var remoteFirebase;
 
-        setup(function(done) {
-          firebase = fixture('SyncingCollections');
-          localFirebase = firebase[0];
-          remoteFirebase = firebase[1];
-          Promise.all([
-            waitForEvent(localFirebase, 'firebase-value'),
-            waitForEvent(remoteFirebase, 'firebase-value')
-          ]).then(function() {
-            done();
-          }).catch(function(e) {
-            done(e);
-          });
+        setup(function() {
+          numberOfItems = 3;
+
+          firebase = fixtureFirebase('TrivialCollection', arrayOfObjects(3));
+          firebase.orderValueType = 'number';
+          firebase.orderByValue = true;
+
+          remoteFirebase = new Firebase(firebase.location);
         });
 
-        test('syncs a new item at the correct index', function(done) {
-          var data = {
-            foo: 100
-          };
-          var key;
+        test('sync a new item at the correct index', function() {
+          var firstValue = firebase.data[0];
+          var secondValue = firebase.data[1];
+          var datum = firebase.data[0];
+          var key = Polymer.Collection.get(firebase.data).getKey(datum);
+          var remoteValue;
 
-          waitForEvent(remoteFirebase, 'firebase-value').then(function() {
-            var value = remoteFirebase.getByKey(key);
-            var lowValue = remoteFirebase.getByKey('lowValue');
-            var highValue = remoteFirebase.getByKey('highValue');
-
-            var index = remoteFirebase.data.indexOf(value);
-            var lowIndex = remoteFirebase.data.indexOf(lowValue);
-            var highIndex = remoteFirebase.data.indexOf(highValue);
-
-            expect(value).to.be.okay;
-            expect(index).to.be.lessThan(highIndex);
-            expect(index).to.be.greaterThan(lowIndex);
-            done();
-          }).catch(function(e) {
-            done(e);
-          }).then(function() {
-            localFirebase.removeByKey(key);
+          remoteFirebase.on('value', function(snapshot) {
+            remoteValue = snapshot.val();
           });
 
-          key = localFirebase.add(data).key();
+          expect(remoteValue[0].value).to.be.equal(firebase.data[0].value);
+        });
+      });
+
+      suite('data-bound collection manipulation', function() {
+        var numberOfItems;
+        var elements;
+        var domBind;
+
+        setup(function() {
+          elements = fixture('BoundCollection');
+          domBind = elements.querySelector('[is=dom-bind]');
+          firebase = elements.querySelector('firebase-collection');
+          firebase.location = fixtureLocation(arrayOfObjects(3));
+          numberOfItems = 3;
+        });
+
+        test('splices reflect in Firebase data', function(done) {
+          domBind.splice('data', 0, 1, randomObject());
+          domBind.shift('data');
+          domBind.push.apply(domBind, ['data'].concat(arrayOfObjects(2)));
+
+          // NOTE(cdata): See polymer/polymer#2491.
+          Polymer.Base.async(function() {
+            expect(firebase.data.length).to.be.equal(domBind.data.length);
+
+            firebase.data.forEach(function(datum, index) {
+              expect(domBind.data[index].value).to.be.equal(datum.value);
+            });
+
+            done();
+          }, 1);
+        });
+
+        test('splices reflect in the DOM', function(done) {
+          var divs;
+
+          firebase.push.apply(firebase, ['data'].concat(arrayOfObjects(3)));
+
+          Polymer.Base.async(function() {
+            divs = elements.querySelectorAll('div');
+            expect(divs.length).to.be.equal(firebase.data.length);
+
+            domBind.splice('data', 2, 1, randomObject());
+
+            Polymer.Base.async(function() {
+              divs = elements.querySelectorAll('div');
+              expect(divs.length).to.be.equal(firebase.data.length);
+
+              firebase.data.forEach(function(datum, index) {
+                var divValue = parseInt(divs[index].textContent, 10);
+                expect(datum.value).to.be.equal(divValue);
+              });
+
+              done();
+            }, 1);
+          }, 1);
         });
       });
     });
+
   </script>
 
 </body>

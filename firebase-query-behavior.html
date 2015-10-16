@@ -40,17 +40,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         type: Boolean,
         value: false,
         reflectToAttribute: true
-      },
-
-      _receivingRemoteChanges: {
-        type: Boolean,
-        value: false
       }
     },
 
     observers: [
       '_dataChanged(data.*)'
     ],
+
+    created: function() {
+      this._receivingLocalChanges = false;
+      this._receivingRemoteChanges = false;
+    },
 
     get dataAsObject() {
       if (Array.isArray(this.data)) {
@@ -69,27 +69,29 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       this.location = '';
     },
 
-    _applyLocalDataChanges: function(changes) {
+    _localDataChanged: function(changes) {
       // Virtual..
     },
 
+    _applyLocalDataChange: function(applyChange) {
+      this._receivingLocalChanges = true;
+      applyChange.call(this);
+      this._receivingLocalChanges = false;
+    },
+
     _applyRemoteDataChange: function(applyChange) {
-      if (this._applyingLocalDataChanges) {
-        return;
-      }
       this._receivingRemoteChanges = true;
       applyChange.call(this);
       this._receivingRemoteChanges = false;
     },
 
     _dataChanged: function(changes) {
-      if (this._receivingRemoteChanges) {
+      if (this._receivingRemoteChanges ||
+          this._receivingLocalChanges) {
         return;
       }
 
-      this._applyingLocalDataChanges = true;
-      this._applyLocalDataChanges(changes);
-      this._applyingLocalDataChanges = false;
+      this._localDataChanged(changes);
     },
 
     _queryChanged: function(query, oldQuery) {
@@ -181,9 +183,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }
     },
 
+    _warn: function() {
+      if (this.log) {
+        Polymer.Base._warn(this._logf.apply(this, arguments));
+      }
+    },
+
     _error: function() {
       if (this.log) {
-        console.error.apply(console, arguments);
+        Polymer.Base._error(this._logf.apply(this, arguments));
       }
     }
   };

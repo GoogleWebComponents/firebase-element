@@ -64,7 +64,7 @@ document.
       'firebase-value': '_onFirebaseValue'
     },
 
-    _applyLocalDataChanges: function(change) {
+    _localDataChanged: function(change) {
       var pathFragments = change.path.split('.');
 
       if (pathFragments.length === 1) {
@@ -98,8 +98,10 @@ document.
     },
 
     _setRemoteDocumentChild: function(key, value) {
-      this._log('Setting child "' + key + '" to', value);
-      this.query.child(key).set(value);
+      this.debounce('set-' + key, function() {
+        this._log('Setting child "' + key + '" to', value);
+        this.query.child(key).set(value);
+      });
     },
 
     _removeRemoteDocumentChild: function(key) {
