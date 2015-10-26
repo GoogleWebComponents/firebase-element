@@ -73,8 +73,8 @@ document.
       }
 
       this._setRemoteDocumentChild(
-        pathFragments[1],
-        change.base[pathFragments[1]]
+        pathFragments.slice(1).join('/'),
+        change.value
       );
     },
 
