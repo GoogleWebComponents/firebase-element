@@ -3,16 +3,10 @@
   "description": "An element that makes it easy to declaratively use the powerful firebase backend",
   "version": "1.0.8",
   "private": true,
-  "main": [
-    "firebase-collection.html",
-    "firebase-document.html",
-    "firebase-auth.html",
-    "firebase-query-behavior.html"
-  ],
+  "main": ["firebase-collection.html","firebase-document.html","firebase-auth.html","firebase-query-behavior.html"],
   "dependencies": {
     "polymer": "polymer/polymer#^1.0.0",
-    "firebase": "^2.3.1",
-    "web-component-tester": "Polymer/web-component-tester#~3.4.0"
+    "firebase": "^2.3.1"
   },
   "devDependencies": {
     "iron-component-page": "polymerelements/iron-component-page#1.0.2",
