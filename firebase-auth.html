@@ -32,7 +32,7 @@ Element wrapper for the Firebase authentication API (https://www.firebase.com/do
 
       /**
        * Default login provider type.  May be one of: `anonymous`, `custom`, `password`
-       * `facebook`, `github`, `twitter`, `google`.
+       * `facebook`, `github`, `twitter`, `google`, `authtoken`.
        */
       provider: {
         type: String,
@@ -232,6 +232,9 @@ Element wrapper for the Firebase authentication API (https://www.firebase.com/do
             } else {
               this.ref.authWithOAuthPopup(this.provider, this._loginHandler.bind(this), params);
             }
+            break;
+          case 'authtoken':
+            this.ref.authWithOAuthToken(params.provider, params.token, this._loginHandler.bind(this));
             break;
           default:
             throw 'Unknown provider: ' + this.provider;
