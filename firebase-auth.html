@@ -225,7 +225,8 @@ Element wrapper for the Firebase authentication API (https://www.firebase.com/do
           case 'google':
           case 'github':
           case 'twitter':
-            if (params.token) {
+          token = (params) ? params.token : undefined;
+            if (token) {
               this.ref.authWithOAuthToken(this.provider, params.token, this._loginHandler.bind(this), params);
             } else if (this.redirect) {
               this.ref.authWithOAuthRedirect(this.provider, this._loginHandler.bind(this), params);
@@ -391,4 +392,3 @@ Element wrapper for the Firebase authentication API (https://www.firebase.com/do
     }
   });
 </script>
-
