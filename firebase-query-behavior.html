@@ -33,6 +33,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         readOnly: true
       },
 
+     /**
+       * A string storing error when connection to firebase instance is not successfull (for instance when location is a bound property - not available when instanciating the connection)
+       * 
+       */
+      queryError: {
+        type: String,
+        value: '',
+        notify: true
+      },
+
       /**
        * If true, verbose debugging information will be printed to the console.
        */

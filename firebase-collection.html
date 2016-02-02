@@ -253,6 +253,10 @@ manipulation of the collection without direct knowledge of Firebase key values.
 
         this._log('Adding new item to collection with value:', data);
 
+        if(!this.query) {
+          return this._error('Query does not exist (' + this.queryError + ')');
+        }
+
         query = this.query.ref().push();
         query.set(data);
 
@@ -326,6 +330,11 @@ manipulation of the collection without direct knowledge of Firebase key values.
       },
 
       _applySubPathChange: function(change) {
+
+        if(!this.query) {
+          return this._error('Query does not exist (' + this.queryError + ')');
+        }
+
         var key = change.path.split('.')[1];
         var value = Polymer.Collection.get(change.base).getItem(key);
         var firebaseKey = value.__firebaseKey__;
@@ -384,37 +393,50 @@ manipulation of the collection without direct knowledge of Firebase key values.
 
         this._log('Recomputing query.', arguments);
 
-        query = new Firebase(location);
+        try {
+          query =  new Firebase(location);
+          
+          this.queryString = '';
 
-        if (orderByMethodName) {
-          if (orderByMethodName === 'orderByChild') {
-            query = query[orderByMethodName](this.orderByChild);
-          } else {
-            query = query[orderByMethodName]();
+          if (orderByMethodName) {
+            if (orderByMethodName === 'orderByChild') {
+              query = query[orderByMethodName](this.orderByChild);
+            } else {
+              query = query[orderByMethodName]();
+            }
           }
+
+          if (startAt != null) {
+            query = query.startAt(startAt);
+          }
+
+          if (endAt != null) {
+            query = query.endAt(endAt);
+          }
+
+          if (equalTo != null) {
+            query = query.equalTo(equalTo);
+          }
+
+          if (limitToLast != null) {
+            query = query.limitToLast(limitToLast);
+          }
+
+          if (limitToFirst != null) {
+            query = query.limitToFirst(limitToFirst);
+          }
+
+        } catch(e) {
+          
+          this.queryString = e.toString();
+          this._error('Query cannot be instanciated with location ' + location + ' (' + this.queryError + ')');
+        
+        } finally {
+        
+          return query;
+        
         }
 
-        if (startAt != null) {
-          query = query.startAt(startAt);
-        }
-
-        if (endAt != null) {
-          query = query.endAt(endAt);
-        }
-
-        if (equalTo != null) {
-          query = query.equalTo(equalTo);
-        }
-
-        if (limitToLast != null) {
-          query = query.limitToLast(limitToLast);
-        }
-
-        if (limitToFirst != null) {
-          query = query.limitToFirst(limitToFirst);
-        }
-
-        return query;
       },
 
       _queryChanged: function() {
