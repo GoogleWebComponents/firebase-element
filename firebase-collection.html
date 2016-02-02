@@ -396,7 +396,7 @@ manipulation of the collection without direct knowledge of Firebase key values.
         try {
           query =  new Firebase(location);
           
-          this.queryString = '';
+          this.queryError = '';
 
           if (orderByMethodName) {
             if (orderByMethodName === 'orderByChild') {
@@ -428,7 +428,7 @@ manipulation of the collection without direct knowledge of Firebase key values.
 
         } catch(e) {
           
-          this.queryString = e.toString();
+          this.queryError = e.toString();
           this._error('Query cannot be instanciated with location ' + location + ' (' + this.queryError + ')');
         
         } finally {

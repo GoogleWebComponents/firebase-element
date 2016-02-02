@@ -94,11 +94,11 @@ document.
       try {
       
         query =  new Firebase(location);
-        this.queryString = '';
+        this.queryError = '';
       
       } catch(e) {
         
-        this.queryString = e.toString();
+        this.queryError = e.toString();
         this._error('Query cannot be instanciated with location ' + location + ' (' + this.queryError + ')');
 
       } finally {
