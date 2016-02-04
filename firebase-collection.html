@@ -253,7 +253,7 @@ manipulation of the collection without direct knowledge of Firebase key values.
 
         this._log('Adding new item to collection with value:', data);
 
-        if(!this.query) {
+        if (!this.query) {
           return this._error('Query does not exist (' + this.queryError + ')');
         }
 
@@ -394,7 +394,7 @@ manipulation of the collection without direct knowledge of Firebase key values.
         this._log('Recomputing query.', arguments);
 
         try {
-          query =  new Firebase(location);
+          query = new Firebase(location);
           
           this.queryError = '';
 
@@ -429,7 +429,7 @@ manipulation of the collection without direct knowledge of Firebase key values.
         } catch(e) {
           
           this.queryError = e.toString();
-          this._error('Query cannot be instanciated with location ' + location + ' (' + this.queryError + ')');
+          this._error('Query cannot be instantiated with location ' + location + ' (' + this.queryError + ')');
         
         } finally {
         
