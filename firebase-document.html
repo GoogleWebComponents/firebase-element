@@ -94,12 +94,12 @@ document.
       try {
       
         query =  new Firebase(location);
-        this.queryError = '';
       
       } catch(e) {
         
-        this.queryError = e.toString();
-        this._error('Query cannot be instantiated with location ' + location + ' (' + this.queryError + ')');
+        var error = 'Query cannot be instantiated with location ' + location + ' (' + e.toString() + ')';
+        this.fire('query-error', error);
+        this._error(error);
 
       } finally {
         return query;
@@ -110,7 +110,11 @@ document.
       this._log('Updating remote document');
       
       if (!this.query) {
-        return this._error('Query does not exist (' + this.queryError + ')');
+
+        var error = 'Query does not exist';
+        this.fire('query-error', error);
+        return this._error(error);
+
       }
 
       this.query.update(this.dataAsObject);
@@ -119,7 +123,11 @@ document.
 
     _setRemoteDocumentChild: function(key, value) {
       if (!this.query) {
-        return this._error('Query does not exist (' + this.queryError + ')');
+
+        var error = 'Query does not exist';
+        this.fire('query-error', error);
+        return this._error(error);
+
       }
 
       this.debounce('set-' + key, function() {
@@ -133,7 +141,11 @@ document.
       this._log('Removing child "' + key + '"');
       
       if (!this.query) {
-        return this._error('Query does not exist (' + this.queryError + ')');
+
+        var error = 'Query does not exist';
+        this.fire('query-error', error);
+        return this._error(error);
+
       }
 
       this.query.child(key).remove();
