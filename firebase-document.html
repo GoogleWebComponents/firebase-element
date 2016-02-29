@@ -97,9 +97,7 @@ document.
       
       } catch(e) {
         
-        var error = 'Query cannot be instantiated with location ' + location + ' (' + e.toString() + ')';
-        this.fire('query-error', error);
-        this._error(error);
+        this._fireQueryError('Query cannot be instantiated with location ' + location + ' (' + e.toString() + ')');
 
       } finally {
         return query;
@@ -111,9 +109,8 @@ document.
       
       if (!this.query) {
 
-        var error = 'Query does not exist';
-        this.fire('query-error', error);
-        return this._error(error);
+        this._fireQueryError('Query does not exist');
+        return; 
 
       }
 
@@ -124,9 +121,8 @@ document.
     _setRemoteDocumentChild: function(key, value) {
       if (!this.query) {
 
-        var error = 'Query does not exist';
-        this.fire('query-error', error);
-        return this._error(error);
+        this._fireQueryError('Query does not exist');
+        return; 
 
       }
 
@@ -142,9 +138,8 @@ document.
       
       if (!this.query) {
 
-        var error = 'Query does not exist';
-        this.fire('query-error', error);
-        return this._error(error);
+        this._fireQueryError('Query does not exist');
+        return; 
 
       }
 

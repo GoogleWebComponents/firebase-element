@@ -256,7 +256,8 @@ manipulation of the collection without direct knowledge of Firebase key values.
         this._log('Adding new item to collection with value:', data);
 
         if (!this.query) {
-          return this.fire('query-error', 'Query does not exist');
+          this._fireQueryError('Query does not exist');
+          return; 
         }
 
         query = this.query.ref().push();
@@ -334,7 +335,8 @@ manipulation of the collection without direct knowledge of Firebase key values.
       _applySubPathChange: function(change) {
 
         if (!this.query) {
-          return this.fire('query-error', 'Query does not exist');
+          this._fireQueryError('Query does not exist');
+          return; 
         }
 
         var key = change.path.split('.')[1];
@@ -427,10 +429,8 @@ manipulation of the collection without direct knowledge of Firebase key values.
           }
 
         } catch(e) {
-         
-          var error = 'Query cannot be instantiated with location ' + location + ' (' + e.toString() + ')';
-          this.fire('query-error', error);
-          this._error(error);
+          
+          this._fireQueryError('Query cannot be instantiated with location ' + location + ' (' + e.toString() + ')');
         
         } finally {
         
