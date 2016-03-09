@@ -185,13 +185,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
     _warn: function() {
       if (this.log) {
-        Polymer.Base._warn(this._logf.apply(this, arguments));
+        Polymer.Base._warn(this._log.apply(this, arguments));
       }
     },
 
     _error: function() {
       if (this.log) {
-        Polymer.Base._error(this._logf.apply(this, arguments));
+        Polymer.Base._error(this._log.apply(this, arguments));
       }
     }
   };
