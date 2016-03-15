@@ -90,24 +90,59 @@ document.
       if (!location) {
         return;
       }
+      var query;
+      try {
+      
+        query =  new Firebase(location);
+      
+      } catch(e) {
+        
+        this._fireQueryError('Query cannot be instantiated with location ' + location + ' (' + e.toString() + ')');
 
-      return new Firebase(location);
+      } finally {
+        return query;
+      }
     },
 
     _updateRemoteDocument: function() {
       this._log('Updating remote document');
+      
+      if (!this.query) {
+
+        this._fireQueryError('Query does not exist');
+        return; 
+
+      }
+
       this.query.update(this.dataAsObject);
+      
     },
 
     _setRemoteDocumentChild: function(key, value) {
+      if (!this.query) {
+
+        this._fireQueryError('Query does not exist');
+        return; 
+
+      }
+
       this.debounce('set-' + key, function() {
         this._log('Setting child "' + key + '" to', value);
         this.query.child(key).set(value);
       });
+    
     },
 
     _removeRemoteDocumentChild: function(key) {
       this._log('Removing child "' + key + '"');
+      
+      if (!this.query) {
+
+        this._fireQueryError('Query does not exist');
+        return; 
+
+      }
+
       this.query.child(key).remove();
     }
   });

@@ -167,6 +167,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       this.disconnect();
     },
 
+    _fireQueryError: function(error) {
+      this.fire('firebase-query-error', error);
+      this._error(error);
+    },
+
     _log: function() {
       var args;
 
