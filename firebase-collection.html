@@ -609,7 +609,7 @@ manipulation of the collection without direct knowledge of Firebase key values.
 
           this._valueMap[oldValue.__firebaseKey__] = null;
           this._valueMap[value.__firebaseKey__] = value;
-          this.splice('data', this.data.indexOf(oldValue), 1, value);
+          this.set('data.' + this.data.indexOf(oldValue), value);
         });
       },
 
