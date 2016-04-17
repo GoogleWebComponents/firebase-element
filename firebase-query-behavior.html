@@ -69,6 +69,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       this.location = '';
     },
 
+    listeners: {
+      'firebase-value': '_onFirebaseLoaded'
+    },
+
+    _onFirebaseLoaded: function() {
+      this.unlisten(this, 'firebase-value', '_onFirebaseLoaded');
+      this.fire('firebase-loaded');
+    },
+
     _localDataChanged: function(changes) {
       // Virtual..
     },
@@ -87,7 +96,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
     _dataChanged: function(changes) {
       if (this._receivingRemoteChanges ||
-          this._receivingLocalChanges) {
+              this._receivingLocalChanges) {
         return;
       }
 
@@ -102,6 +111,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       if (query) {
         this._listenToQuery(query);
       }
+      this.listen(this, 'firebase-value', '_onFirebaseLoaded');
     },
 
     _listenToQuery: function(query) {
@@ -111,7 +121,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       query.on('child_removed', this._onQueryChildRemoved, this._onQueryCancel, this);
       query.on('child_changed', this._onQueryChildChanged, this._onQueryCancel, this);
       query.on('child_moved', this._onQueryChildMoved, this._onQueryCancel, this);
-      query.once('value', this._onInitialDataLoaded, this);
     },
 
     _stopListeningToQuery: function(query) {
@@ -157,10 +166,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         childSnapshot: childSnapshot,
         previousChildName: previousChildName
       }, { bubbles: false });
-    },
-
-    _onInitialDataLoaded: function(snapshot) {
-      this.fire('firebase-loaded', snapshot, { bubbles: false });
     },
 
     _onQueryCancel: function(error) {
