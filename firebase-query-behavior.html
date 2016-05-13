@@ -160,6 +160,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
     _onQueryCancel: function(error) {
       if (error) {
+        this.fire('firebase-error', error);
         this._error('Firebase Error', error);
       }
 
