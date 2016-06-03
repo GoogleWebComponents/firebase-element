@@ -13,6 +13,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="firebase-query-behavior.html">
 
 <!--
+**Note: This element is for the older Firebase 2 API**
+For the latest official Firebase 3.0-compatible component from the Firebase team,
+see the [polymerfire](https://github.com/firebase/polymerfire) component.
+
 An element wrapper for the Firebase API.
 
 A `<firebase-document>` is a reference to a remote document somewhere on
@@ -92,11 +96,11 @@ document.
       }
       var query;
       try {
-      
+
         query =  new Firebase(location);
-      
+
       } catch(e) {
-        
+
         this._fireQueryError('Query cannot be instantiated with location ' + location + ' (' + e.toString() + ')');
 
       } finally {
@@ -106,23 +110,23 @@ document.
 
     _updateRemoteDocument: function() {
       this._log('Updating remote document');
-      
+
       if (!this.query) {
 
         this._fireQueryError('Query does not exist');
-        return; 
+        return;
 
       }
 
       this.query.update(this.dataAsObject);
-      
+
     },
 
     _setRemoteDocumentChild: function(key, value) {
       if (!this.query) {
 
         this._fireQueryError('Query does not exist');
-        return; 
+        return;
 
       }
 
@@ -130,16 +134,16 @@ document.
         this._log('Setting child "' + key + '" to', value);
         this.query.child(key).set(value);
       });
-    
+
     },
 
     _removeRemoteDocumentChild: function(key) {
       this._log('Removing child "' + key + '"');
-      
+
       if (!this.query) {
 
         this._fireQueryError('Query does not exist');
-        return; 
+        return;
 
       }
 

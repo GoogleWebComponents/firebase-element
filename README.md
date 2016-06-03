@@ -1,4 +1,7 @@
-firebase-element
+## Note: This element is for the older Firebase 2.0 API.
+For the latest official Firebase 3.0-compatible component from the Firebase team,
+see the [polymerfire](https://github.com/firebase/polymerfire) component.
+
 ================
 
 See the [component page](https://elements.polymer-project.org/elements/firebase-element?active=firebase-collection) for more information.
