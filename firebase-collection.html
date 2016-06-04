@@ -12,6 +12,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="firebase-query-behavior.html">
 
 <!--
+**Note: This element is for the older Firebase 2 API**
+For the latest official Firebase 3.0-compatible component from the Firebase team,
+see the [polymerfire](https://github.com/firebase/polymerfire) component.
+In this new component, the `firebase-collection` element has been replaced
+with [`firebase-query`](https://github.com/firebase/polymerfire#firebase-query)
+
 An element wrapper for the Firebase API that provides a view into the provided
 Firebase location as an ordered collection.
 
@@ -257,7 +263,7 @@ manipulation of the collection without direct knowledge of Firebase key values.
 
         if (!this.query) {
           this._fireQueryError('Query does not exist');
-          return; 
+          return;
         }
 
         query = this.query.ref().push();
@@ -336,7 +342,7 @@ manipulation of the collection without direct knowledge of Firebase key values.
 
         if (!this.query) {
           this._fireQueryError('Query does not exist');
-          return; 
+          return;
         }
 
         var key = change.path.split('.')[1];
@@ -399,7 +405,7 @@ manipulation of the collection without direct knowledge of Firebase key values.
 
         try {
           query = new Firebase(location);
-          
+
           if (orderByMethodName) {
             if (orderByMethodName === 'orderByChild') {
               query = query[orderByMethodName](this.orderByChild);
@@ -429,13 +435,13 @@ manipulation of the collection without direct knowledge of Firebase key values.
           }
 
         } catch(e) {
-          
+
           this._fireQueryError('Query cannot be instantiated with location ' + location + ' (' + e.toString() + ')');
-        
+
         } finally {
-        
+
           return query;
-        
+
         }
 
       },
