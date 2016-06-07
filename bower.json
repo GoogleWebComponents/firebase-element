@@ -1,7 +1,7 @@
 {
   "name": "firebase-element",
   "description": "An element that makes it easy to declaratively use the powerful firebase backend",
-  "version": "1.0.13",
+  "version": "1.0.14",
   "private": true,
   "main": ["firebase-collection.html","firebase-document.html","firebase-auth.html","firebase-query-behavior.html"],
   "dependencies": {
