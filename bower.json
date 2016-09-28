@@ -4,6 +4,7 @@
   "version": "1.0.15",
   "private": true,
   "main": ["firebase-collection.html","firebase-document.html","firebase-auth.html","firebase-query-behavior.html"],
+  "license": "http://polymer.github.io/LICENSE.txt",
   "dependencies": {
     "polymer": "polymer/polymer#^1.0.0",
     "firebase": "^2.3.1"
