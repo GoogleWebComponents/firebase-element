@@ -75,6 +75,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       this.location = '';
     },
 
+    listeners: {
+      'firebase-value': '_onFirebaseLoaded'
+    },
+
+    _onFirebaseLoaded: function() {
+      this.unlisten(this, 'firebase-value', '_onFirebaseLoaded');
+      this.fire('firebase-loaded');
+    },
+
     _localDataChanged: function(changes) {
       // Virtual..
     },
@@ -93,7 +102,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
     _dataChanged: function(changes) {
       if (this._receivingRemoteChanges ||
-          this._receivingLocalChanges) {
+              this._receivingLocalChanges) {
         return;
       }
 
@@ -108,6 +117,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       if (query) {
         this._listenToQuery(query);
       }
+      this.listen(this, 'firebase-value', '_onFirebaseLoaded');
     },
 
     _listenToQuery: function(query) {
