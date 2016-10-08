@@ -183,6 +183,8 @@ Element wrapper for the Firebase authentication API (https://www.firebase.com/do
 
         this._setStatusKnown(true);
       }
+      // Fire an `authenticated` event to signal a change in auth status
+      this.fire('authenticated');
     },
 
     /**
