@@ -215,22 +215,27 @@ manipulation of the collection without direct knowledge of Firebase key values.
         },
 
         _orderByMethodName: {
+          type: String,
           computed: '_computeOrderByMethodName(orderByChild, orderByKey, orderByValue, orderByPriority)'
         },
 
         _orderByTypeCast: {
+          type: Object,
           computed: '_computeOrderByTypeCast(orderByChild, orderByKey, orderByValue, orderByPriority, orderValueType)'
         },
 
         _startAt: {
+          type: Object,
           computed: '_computeStartAt(startAt, _orderByTypeCast)'
         },
 
         _endAt: {
+          type: Object,
           computed: '_computeEndAt(endAt, _orderByTypeCast)'
         },
 
         _equalTo: {
+          type: Object,
           computed: '_computeEqualTo(equalTo, _orderByTypeCast)'
         }
       },

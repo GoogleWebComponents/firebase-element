@@ -35,7 +35,7 @@ Element wrapper for the Firebase authentication API (https://www.firebase.com/do
       },
 
       /**
-       * Default login provider type.  May be one of: `anonymous`, `custom`, `password`, 
+       * Default login provider type.  May be one of: `anonymous`, `custom`, `password`,
        * `facebook`, `github`, `twitter`, `google`.
        */
       provider: {
@@ -110,12 +110,14 @@ Element wrapper for the Firebase authentication API (https://www.firebase.com/do
       },
 
       _boundAuthHandler: {
+        type: Object,
         value: function() {
           return this._authHandler.bind(this);
         }
       },
 
       _boundOnlineHandler: {
+        type: Object,
         value: function() {
           return this._onlineHandler.bind(this);
         }
