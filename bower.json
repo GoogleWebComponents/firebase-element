@@ -6,7 +6,7 @@
   "main": ["firebase-collection.html","firebase-document.html","firebase-auth.html","firebase-query-behavior.html"],
   "license": "http://polymer.github.io/LICENSE.txt",
   "dependencies": {
-    "polymer": "polymer/polymer#^1.0.0",
+    "polymer": "Polymer/polymer#^1.0.0",
     "firebase": "^2.3.1"
   },
   "ignore": [
@@ -17,11 +17,11 @@
     "tests"
   ],
   "devDependencies": {
-    "iron-component-page": "polymerelements/iron-component-page#1.0.2",
-    "promise-polyfill": "polymerlabs/promise-polyfill#^1.0.0",
-    "test-fixture": "polymerelements/test-fixture#^1.0.0",
+    "iron-component-page": "PolymerElements/iron-component-page#1.0.2",
+    "promise-polyfill": "PolymerLabs/promise-polyfill#^1.0.0",
+    "test-fixture": "PolymerElements/test-fixture#^1.0.0",
     "webcomponentsjs": "webcomponents/webcomponentsjs#^0.7.0",
-    "paper-styles": "polymerelements/paper-styles#^1.0.0",
+    "paper-styles": "PolymerElements/paper-styles#^1.0.0",
     "web-component-tester": "*"
   }
 }
